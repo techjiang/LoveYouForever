@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ ('搜索：' + keyword) if keyword else '全部文章' }} · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>{% if keyword %}“{{ keyword }}” 的结果{% else %}全部文章{% endif %}</h1>
+    <p>共 {{ pagination.total }} 篇 · 每一篇都是当时的我们</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="layout-2col">
+      <div>
+        {% if posts %}
+          <div class="post-grid">
+            {% for post in posts %}{% include "partials/_card.html" %}{% endfor %}
+          </div>
+          {% include "partials/_pagination.html" %}
+        {% else %}
+          <div class="empty-state"><span class="icon">🔍</span><p>这里还什么都没有</p></div>
+        {% endif %}
+      </div>
+      {% include "partials/_sidebar.html" %}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,46 @@
+{#- 文章卡片：全站复用 -#}
+<article class="post-card {% if post.cover %}has-cover{% endif %}">
+  {% if post.cover %}
+    <a class="card-cover" href="{{ url_for('blog.post_detail', slug=post.slug) }}">
+      <img src="{{ post.cover }}" alt="{{ post.title }}" loading="lazy">
+    </a>
+  {% endif %}
+  <div class="card-body">
+    <div class="card-meta">
+      {% if post.category %}
+        <a class="chip chip-cat" href="{{ url_for('blog.category', slug=post.category.slug) }}">
+          {{ post.category.icon }} {{ post.category.name }}
+        </a>
+      {% endif %}
+      <time datetime="{{ post.published_at.isoformat() if post.published_at else '' }}">
+        {{ post.published_at | fmt_date }}
+      </time>
+      <span class="dot">·</span>
+      <span>{{ post.reading_minutes }} 分钟</span>
+    </div>
+
+    <h3 class="card-title">
+      {% if post.is_pinned %}<span class="pin" title="置顶">📌</span>{% endif %}
+      <a href="{{ url_for('blog.post_detail', slug=post.slug) }}">{{ post.title }}</a>
+    </h3>
+
+    <p class="card-excerpt">{{ post.plain_excerpt }}</p>
+
+    <div class="card-foot">
+      <div class="card-author">
+        {% if post.author and post.author.avatar %}
+          <img class="avatar-xs" src="{{ post.author.avatar }}" alt="">
+        {% else %}
+          <span class="avatar-xs avatar-fallback">{{ post.author.display_name[0] if post.author else '?' }}</span>
+        {% endif %}
+        <span class="author-name">{{ post.author_line }}</span>
+      </div>
+      <div class="card-tags">
+        {% for tag in post.tags[:3] %}
+          <a class="chip chip-tag" href="{{ url_for('blog.tag', slug=tag.slug) }}">#{{ tag.name }}</a>
+        {% endfor %}
+      </div>
+      <span class="card-views" title="阅读量">👁 {{ post.views }}</span>
+    </div>
+  </div>
+</article>

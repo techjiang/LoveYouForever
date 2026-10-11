@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}友链 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>友情链接</h1>
+    <p>网络这么大，认识了一些好邻居</p>
+  </div>
+</div>
+<section class="section">
+  <div class="container">
+    <div class="link-grid">
+      {% for link in links %}
+        <a class="link-card" href="{{ link.url }}" target="_blank" rel="noopener">
+          {% if link.avatar %}
+            <img class="link-avatar" src="{{ link.avatar }}" alt="{{ link.name }}">
+          {% else %}
+            <span class="link-avatar">{{ link.name[0] }}</span>
+          {% endif %}
+          <span class="link-info">
+            <strong>{{ link.name }}{% if link.is_couple_site %} 💞{% endif %}</strong>
+            <small>{{ link.description or link.url }}</small>
+          </span>
+        </a>
+      {% else %}
+        <div class="empty-state"><span class="icon">🔗</span><p>还没有友链，欢迎来申请</p></div>
+      {% endfor %}
+    </div>
+
+    <div class="panel" style="max-width:560px;margin:40px auto 0">
+      <h3>申请友链</h3>
+      <form method="post" action="{{ url_for('misc.apply_link') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          <div class="form-row"><label>站点名</label><input class="input" name="name" required></div>
+          <div class="form-row"><label>链接</label><input class="input" name="url" required placeholder="https://"></div>
+          <div class="form-row"><label>头像地址</label><input class="input" name="avatar"></div>
+          <div class="form-row"><label>描述</label><input class="input" name="description"></div>
+        </div>
+        <button class="btn btn-primary" type="submit">提交申请</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

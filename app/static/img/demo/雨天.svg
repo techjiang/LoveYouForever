@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7fb0ff"/>
+      <stop offset="100%" stop-color="#3d7dff"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#g)"/>
+  <circle cx="316" cy="292" r="107" fill="#ffffff" opacity="0.16"/>
+  <circle cx="511" cy="297" r="95" fill="#ffffff" opacity="0.12"/>
+  <text x="400" y="320" font-family="PingFang SC, Microsoft YaHei, sans-serif"
+        font-size="64" fill="#ffffff" opacity="0.9" text-anchor="middle">雨天</text>
+  <text x="400" y="380" font-family="PingFang SC, Microsoft YaHei, sans-serif"
+        font-size="20" fill="#ffffff" opacity="0.7" text-anchor="middle">LoveYouForever · 演示图片</text>
+</svg>

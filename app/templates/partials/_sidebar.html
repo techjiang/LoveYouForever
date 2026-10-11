@@ -1,0 +1,44 @@
+<aside class="sidebar">
+  <div class="panel">
+    <h3>🔍 搜索</h3>
+    <form action="{{ url_for('blog.search') }}" method="get" style="display:flex;gap:8px">
+      <input class="input" type="search" name="q" placeholder="输入关键词">
+      <button class="btn btn-primary btn-sm" type="submit">搜</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h3>📁 分类</h3>
+    {% for cat in site.categories %}
+      <a href="{{ url_for('blog.category', slug=cat.slug) }}"
+         style="display:flex;justify-content:space-between;padding:7px 0;color:var(--lyf-text);font-size:14.5px;border-bottom:1px dashed var(--lyf-border)">
+        <span>{{ cat.icon }} {{ cat.name }}</span>
+        <span class="badge">{{ cat.post_count }}</span>
+      </a>
+    {% endfor %}
+  </div>
+
+  <div class="panel">
+    <h3>🏷 热门标签</h3>
+    <div class="tag-cloud">
+      {% set tags = [] %}
+      {% for t in [] %}{% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>🕐 归档</h3>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('blog.archive') }}" style="width:100%">按时间浏览全部文章</a>
+  </div>
+
+  {% if site.couple and site.couple.is_complete %}
+  <div class="panel" style="background:var(--lyf-primary-soft);border-color:var(--lyf-primary)">
+    <h3>💞 我们</h3>
+    <p style="font-size:14px;margin:0 0 10px">{{ site.couple.slogan }}</p>
+    <p style="font-size:14px;color:var(--lyf-text-muted);margin:0">
+      已经在一起 <strong style="color:var(--lyf-primary)">{{ site.days_together }}</strong> 天
+    </p>
+    <a class="btn btn-primary btn-sm" href="{{ url_for('couple.home') }}" style="margin-top:12px;width:100%">进入我们的小屋</a>
+  </div>
+  {% endif %}
+</aside>

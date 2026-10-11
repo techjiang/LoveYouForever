@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  {% if page.cover %}
+    <div class="container" style="max-width:900px">
+      <img src="{{ page.cover }}" alt="{{ page.title }}" style="border-radius:var(--radius-lg);margin-bottom:18px">
+      <h1>{{ page.title }}</h1>
+    </div>
+  {% else %}
+    <div class="container"><h1>{{ page.title }}</h1></div>
+  {% endif %}
+</div>
+<section class="section">
+  <div class="container" style="max-width:780px">
+    <div class="post-body">{{ page_html | safe }}</div>
+  </div>
+</section>
+{% endblock %}

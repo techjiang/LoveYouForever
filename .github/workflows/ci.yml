@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+      - name: Smoke test boot
+        env:
+          LYF_ENV: development
+        run: |
+          python -c "
+          from app import create_app
+          app = create_app('development')
+          c = app.test_client()
+          assert c.get('/').status_code == 200
+          assert c.get('/api/stats').status_code == 200
+          html = c.get('/').get_data(as_text=True)
+          assert 'data-lyf-signature' in html
+          print('boot ok')
+          "

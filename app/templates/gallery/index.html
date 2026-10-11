@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}相册 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>🖼 相册</h1>
+    <p>{{ albums | length }} 个相册 · {{ total_photos }} 张照片</p>
+  </div>
+</div>
+<section class="section">
+  <div class="container">
+    <div class="album-grid">
+      {% for album in albums %}
+        <a class="album-card" href="{{ url_for('gallery.album', slug=album.slug) }}">
+          <div class="album-cover" {% if album.display_cover %}style="background-image:url('{{ album.display_cover }}')"{% endif %}>
+            {% if not album.display_cover %}<span class="album-placeholder">📷</span>{% endif %}
+          </div>
+          <div class="album-info">
+            <strong>{{ album.title }}</strong>
+            <small>{{ album.photo_count }} 张</small>
+          </div>
+        </a>
+      {% else %}
+        <div class="empty-state"><span class="icon">🖼</span><p>还没有相册</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

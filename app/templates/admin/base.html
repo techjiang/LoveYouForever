@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="{{ site.theme_mode or 'light' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}后台{% endblock %} · {{ site.name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>{{ theme_css | safe }}</style>
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="admin-body">
+<div class="admin-shell">
+  <aside class="admin-side">
+    <a class="admin-brand" href="{{ url_for('admin.index') }}">
+      <span class="brand-mark">❤</span>
+      <span>{{ site.name }}<br><small style="font-weight:400;color:var(--lyf-text-muted);font-size:11px">管理后台</small></span>
+    </a>
+    <nav class="admin-nav">
+      <a href="{{ url_for('admin.index') }}" class="{{ 'active' if request.endpoint == 'admin.index' }}">📊 仪表盘</a>
+
+      <span class="group-title">内容</span>
+      <a href="{{ url_for('admin.posts') }}" class="{{ 'active' if request.endpoint in ['admin.posts', 'admin.post_edit', 'admin.post_new'] }}">📝 文章</a>
+      <a href="{{ url_for('admin.categories') }}" class="{{ 'active' if request.endpoint == 'admin.categories' }}">🗂 分类</a>
+      <a href="{{ url_for('admin.tags') }}" class="{{ 'active' if request.endpoint == 'admin.tags' }}">🏷 标签</a>
+      <a href="{{ url_for('admin.pages') }}" class="{{ 'active' if request.endpoint in ['admin.pages', 'admin.page_edit', 'admin.custom_page_edit'] }}">📄 页面</a>
+
+      <span class="group-title">互动</span>
+      <a href="{{ url_for('admin.moments') }}" class="{{ 'active' if request.endpoint == 'admin.moments' }}">💭 瞬间</a>
+      <a href="{{ url_for('admin.comments') }}" class="{{ 'active' if request.endpoint == 'admin.comments' }}">💬 评论</a>
+      <a href="{{ url_for('admin.albums') }}" class="{{ 'active' if request.endpoint in ['admin.albums', 'admin.album_detail'] }}">🖼 相册</a>
+      <a href="{{ url_for('admin.friends') }}" class="{{ 'active' if request.endpoint == 'admin.friends' }}">🔗 友链</a>
+      <a href="{{ url_for('admin.notes') }}" class="{{ 'active' if request.endpoint == 'admin.notes' }}">💌 小纸条</a>
+
+      <span class="group-title">我们</span>
+      <a href="{{ url_for('admin.couple') }}" class="{{ 'active' if request.endpoint == 'admin.couple' }}">💞 情侣关系</a>
+      <a href="{{ url_for('admin.vows') }}" class="{{ 'active' if request.endpoint == 'admin.vows' }}">🤝 约定</a>
+      <a href="{{ url_for('admin.events') }}" class="{{ 'active' if request.endpoint == 'admin.events' }}">📅 时间线</a>
+      <a href="{{ url_for('admin.merged') }}" class="{{ 'active' if request.endpoint == 'admin.merged' }}">🔀 内容合并</a>
+
+      <span class="group-title">系统</span>
+      <a href="{{ url_for('admin.theme') }}" class="{{ 'active' if request.endpoint == 'admin.theme' }}">🎨 主题配色</a>
+      <a href="{{ url_for('admin.plugins') }}" class="{{ 'active' if request.endpoint == 'admin.plugins' }}">🧩 插件</a>
+      <a href="{{ url_for('admin.backup') }}" class="{{ 'active' if request.endpoint == 'admin.backup' }}">🛡 备份</a>
+      <a href="{{ url_for('admin.users') }}" class="{{ 'active' if request.endpoint == 'admin.users' }}">👥 用户</a>
+      <a href="{{ url_for('admin.site') }}" class="{{ 'active' if request.endpoint == 'admin.site' }}">⚙️ 站点设置</a>
+    </nav>
+
+    <div style="padding:16px 12px;border-top:1px solid var(--lyf-border);margin-top:16px">
+      <a href="{{ url_for('blog.index') }}" style="font-size:13px;color:var(--lyf-text-muted)">← 回到前台</a>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack" style="position:static;margin-bottom:20px">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+
+    <p style="margin-top:48px;font-size:12.5px;color:var(--lyf-text-muted);text-align:center">
+      {{ powered_by_html | safe }}
+    </p>
+  </main>
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

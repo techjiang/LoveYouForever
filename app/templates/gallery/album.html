@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ album.title }} · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>{{ album.title }}</h1>
+    <p>
+      {{ album.description }}
+      {% if album.location %} · {{ album.location }}{% endif %}
+      {% if album.taken_on %} · {{ album.taken_on | fmt_date }}{% endif %}
+      · {{ album.photo_count }} 张
+    </p>
+  </div>
+</div>
+<section class="section">
+  <div class="container">
+    <div class="photo-grid">
+      {% for photo in album.photos %}
+        <a class="photo-item" href="{{ photo.url }}" data-lightbox>
+          <img src="{{ photo.url }}" alt="{{ photo.caption }}" loading="lazy">
+          {% if photo.caption %}<span class="photo-caption">{{ photo.caption }}</span>{% endif %}
+        </a>
+      {% else %}
+        <div class="empty-state"><span class="icon">📷</span><p>这个相册还是空的</p></div>
+      {% endfor %}
+    </div>
+
+    {% if others %}
+      <div class="section-head" style="margin-top:50px"><h2>其他相册</h2></div>
+      <div class="album-grid">
+        {% for a in others %}
+          <a class="album-card" href="{{ url_for('gallery.album', slug=a.slug) }}">
+            <div class="album-cover" {% if a.display_cover %}style="background-image:url('{{ a.display_cover }}')"{% endif %}>
+              {% if not a.display_cover %}<span class="album-placeholder">📷</span>{% endif %}
+            </div>
+            <div class="album-info"><strong>{{ a.title }}</strong><small>{{ a.photo_count }} 张</small></div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

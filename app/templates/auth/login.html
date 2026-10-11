@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}登录 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>欢迎回来</h1>
+    <p class="sub">{{ site.name }} · 只有我们能进的地方</p>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row">
+        <label>用户名或邮箱</label>
+        <input class="input" name="username" required autofocus autocomplete="username">
+      </div>
+      <div class="form-row">
+        <label>密码</label>
+        <input class="input" type="password" name="password" required autocomplete="current-password">
+      </div>
+      <div class="form-row">
+        <label class="checkbox-row"><input type="checkbox" name="remember"> 记住我</label>
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%">登录</button>
+    </form>
+    <p class="auth-switch">
+      <a href="{{ url_for('auth.register') }}">还没有账号？注册一个</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

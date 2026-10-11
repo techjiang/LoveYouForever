@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+{% block title %}分类管理{% endblock %}
+{% block content %}
+<div class="admin-head"><h1>分类管理</h1></div>
+
+<div class="admin-grid cols-2" style="align-items:start">
+  <div class="panel">
+    <h3>＋ 新增分类</h3>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row"><label>名称</label><input class="input" name="name" required></div>
+      <div class="form-row"><label>描述</label><input class="input" name="description"></div>
+      <div class="form-grid">
+        <div class="form-row"><label>图标（emoji）</label><input class="input" name="icon" placeholder="🌤️"></div>
+        <div class="form-row"><label>颜色</label><input class="input" type="color" name="color" value="#ff5c8a"></div>
+      </div>
+      <div class="form-row"><label>排序</label><input class="input" type="number" name="sort_order" value="0"></div>
+      <button class="btn btn-primary" type="submit">添加分类</button>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>分类</th><th>文章</th><th>排序</th><th>操作</th></tr></thead>
+      <tbody>
+      {% for cat in categories %}
+        <tr>
+          <td>
+            <form method="post" action="{{ url_for('admin.category_edit', cat_id=cat.id) }}" style="display:flex;gap:8px;align-items:center">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input class="input" name="name" value="{{ cat.name }}" style="width:110px">
+              <input class="input" name="icon" value="{{ cat.icon }}" style="width:52px">
+              <input class="input" name="description" value="{{ cat.description }}" style="flex:1;min-width:100px">
+              <input class="input" type="number" name="sort_order" value="{{ cat.sort_order }}" style="width:64px">
+              <button class="btn btn-ghost btn-sm" type="submit">保存</button>
+            </form>
+          </td>
+          <td><span class="badge">{{ cat.post_count }}</span></td>
+          <td>{{ cat.sort_order }}</td>
+          <td class="actions">
+            <form method="post" action="{{ url_for('admin.category_delete', cat_id=cat.id) }}" onsubmit="return confirm('删除分类？')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-danger btn-sm" type="submit">删除</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

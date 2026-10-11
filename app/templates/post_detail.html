@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} · {{ site.name }}{% endblock %}
+{% block description %}{{ post.plain_excerpt }}{% endblock %}
+{% block content %}
+<article class="post-page">
+  <div class="container">
+    <header class="post-header">
+      {% if post.category %}
+        <a class="chip chip-cat" href="{{ url_for('blog.category', slug=post.category.slug) }}">
+          {{ post.category.icon }} {{ post.category.name }}
+        </a>
+      {% endif %}
+      <h1>{{ post.title }}</h1>
+      <div class="post-meta">
+        <span class="card-author">
+          {% for a in post.authors %}
+            {% if a.avatar %}<img class="avatar-xs" src="{{ a.avatar }}" alt="">{% else %}
+              <span class="avatar-xs avatar-fallback">{{ a.display_name[0] }}</span>{% endif %}
+            <span>{{ a.display_name }}{% if a.role_text %}<em style="font-style:normal;font-size:11.5px;background:var(--lyf-primary-soft);color:var(--lyf-primary);padding:1px 7px;border-radius:999px;margin-left:5px">{{ a.role_text }}</em>{% endif %}</span>
+          {% endfor %}
+        </span>
+        <span>·</span>
+        <time datetime="{{ post.published_at.isoformat() if post.published_at else '' }}">{{ post.published_at | fmt_date }}</time>
+        <span>·</span>
+        <span>约 {{ post.reading_minutes }} 分钟</span>
+        <span>·</span>
+        <span>👁 {{ post.views }}</span>
+      </div>
+    </header>
+
+    {% if post.cover %}
+      <div class="post-hero-image"><img src="{{ post.cover }}" alt="{{ post.title }}"></div>
+    {% endif %}
+
+    <div class="post-body">
+      {{ post_html | safe }}
+    </div>
+
+    <footer class="post-footer">
+      {% if post.tags %}
+        <div class="post-tags">
+          {% for tag in post.tags %}
+            <a class="chip chip-tag" href="{{ url_for('blog.tag', slug=tag.slug) }}">#{{ tag.name }}</a>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="post-nav">
+        {% if prev_post %}
+          <a href="{{ url_for('blog.post_detail', slug=prev_post.slug) }}">
+            <span class="label">← 上一篇</span>{{ prev_post.title }}
+          </a>
+        {% else %}<span></span>{% endif %}
+        {% if next_post %}
+          <a href="{{ url_for('blog.post_detail', slug=next_post.slug) }}" style="text-align:right">
+            <span class="label">下一篇 →</span>{{ next_post.title }}
+          </a>
+        {% endif %}
+      </div>
+    </footer>
+
+    {% if related %}
+      <section style="max-width:780px;margin:50px auto 0">
+        <div class="section-head"><h2>你可能还想看</h2></div>
+        <div class="post-grid">
+          {% for post in related %}{% include "partials/_card.html" %}{% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</article>
+{% endblock %}

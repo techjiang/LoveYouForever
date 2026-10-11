@@ -1,0 +1,34 @@
+{% extends "admin/base.html" %}
+{% block title %}评论管理{% endblock %}
+{% block content %}
+<div class="admin-head"><h1>评论管理 · {{ pagination.total }} 条</h1></div>
+<div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>评论者</th><th>内容</th><th>所属瞬间</th><th>时间</th><th>操作</th></tr></thead>
+    <tbody>
+    {% for c in comments %}
+      <tr>
+        <td>
+          <strong>{{ c.display_name }}</strong>
+          {% if c.role_text %}<span class="badge primary">{{ c.role_text }}</span>{% endif %}
+        </td>
+        <td style="max-width:360px">{{ c.content }}</td>
+        <td>
+          <a href="{{ url_for('moment.detail', moment_id=c.moment_id) }}#comments" target="_blank">#{{ c.moment_id }}</a>
+        </td>
+        <td style="font-size:13px;color:var(--lyf-text-muted)">{{ c.created_at | humanize }}</td>
+        <td class="actions">
+          <form method="post" action="{{ url_for('admin.comment_delete', comment_id=c.id) }}" onsubmit="return confirm('删除这条评论？')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm" type="submit">删除</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--lyf-text-muted)">还没有评论</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "partials/_pagination_admin.html" %}
+{% endblock %}

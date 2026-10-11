@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}写给你 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero"><div class="container"><h1>💌 写给你</h1></div></div>
+<section class="section">
+  <div class="container" style="max-width:640px">
+    <div class="lyf-vow" style="font-size:19px;line-height:2">
+      {% if couple and couple.slogan %}
+        {{ couple.slogan }}
+      {% else %}
+        我们还有很多个明天。
+      {% endif %}
+    </div>
+    <p style="text-align:center;color:var(--lyf-text-muted)">点一点页脚的小爱心试试。</p>
+  </div>
+</section>
+{% endblock %}

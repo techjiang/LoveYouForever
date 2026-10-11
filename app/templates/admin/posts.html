@@ -1,0 +1,77 @@
+{% extends "admin/base.html" %}
+{% block title %}文章管理{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>文章 · {{ pagination.total }} 篇</h1>
+  <div class="actions">
+    <a class="btn btn-primary btn-sm" href="{{ url_for('admin.post_new') }}">＋ 新建文章</a>
+  </div>
+</div>
+
+<form class="panel" method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+  <div class="form-row" style="margin:0;flex:1;min-width:180px">
+    <label>搜索标题</label>
+    <input class="input" type="search" name="q" value="{{ keyword or '' }}" placeholder="输入关键词">
+  </div>
+  <div class="form-row" style="margin:0">
+    <label>状态</label>
+    <select class="input" name="status">
+      <option value="">全部</option>
+      <option value="published" {{ 'selected' if status == 'published' }}>已发布</option>
+      <option value="draft" {{ 'selected' if status == 'draft' }}>草稿</option>
+    </select>
+  </div>
+  <div class="form-row" style="margin:0">
+    <label>分类</label>
+    <select class="input" name="category">
+      <option value="">全部</option>
+      {% for c in categories %}
+        <option value="{{ c.id }}" {{ 'selected' if cat_id == c.id }}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-ghost btn-sm" type="submit">筛选</button>
+</form>
+
+<div class="table-wrap" style="margin-top:18px">
+  <table class="data">
+    <thead>
+      <tr>
+        <th>标题</th><th>分类</th><th>作者</th><th>状态</th><th>阅读</th><th>时间</th><th style="width:170px">操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for post in posts %}
+      <tr>
+        <td>
+          <a class="row-title" href="{{ url_for('admin.post_edit', post_id=post.id) }}">{{ post.title }}</a>
+          {% if post.is_pinned %}<span class="badge primary">置顶</span>{% endif %}
+        </td>
+        <td>{{ post.category.name if post.category else '—' }}</td>
+        <td>{{ post.author.display_name if post.author else '—' }}</td>
+        <td><span class="badge {{ 'ok' if post.status == 'published' else 'warn' }}">{{ '已发布' if post.status == 'published' else '草稿' }}</span></td>
+        <td>{{ post.views }}</td>
+        <td style="font-size:13px;color:var(--lyf-text-muted)">{{ post.created_at | fmt_date }}</td>
+        <td class="actions">
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('blog.post_detail', slug=post.slug) }}" target="_blank">预览</a>
+          <form method="post" action="{{ url_for('admin.post_toggle', post_id=post.id) }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ghost btn-sm" type="submit">{{ '转草稿' if post.status == 'published' else '发布' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.post_delete', post_id=post.id) }}" style="display:inline"
+                onsubmit="return confirm('确定删除《{{ post.title }}》？此操作不可恢复。')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm" type="submit">删除</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--lyf-text-muted)">还没有文章</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% set pagination = pagination %}{% set endpoint_override = 'admin.posts' %}
+{% include "partials/_pagination_admin.html" %}
+{% endblock %}

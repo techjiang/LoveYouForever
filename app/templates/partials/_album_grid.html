@@ -1,0 +1,13 @@
+<div class="album-grid">
+  {% for album in albums %}
+    <a class="album-card" href="{{ url_for('gallery.album', slug=album.slug) }}">
+      <div class="album-cover" {% if album.display_cover %}style="background-image:url('{{ album.display_cover }}')"{% endif %}>
+        {% if not album.display_cover %}<span class="album-placeholder">📷</span>{% endif %}
+      </div>
+      <div class="album-info">
+        <strong>{{ album.title }}</strong>
+        <small>{{ album.photo_count }} 张</small>
+      </div>
+    </a>
+  {% endfor %}
+</div>

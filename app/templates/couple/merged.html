@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}我们的全部内容 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>🔀 {{ couple.name }} 的全部文章</h1>
+    <p>两个人的内容合在一起，按时间排好 · 共 {{ pagination.total }} 篇</p>
+  </div>
+</div>
+<section class="section">
+  <div class="container">
+    {% if posts %}
+      <div class="post-grid">{% for post in posts %}{% include "partials/_card.html" %}{% endfor %}</div>
+      {% include "partials/_pagination.html" %}
+    {% else %}
+      <div class="empty-state"><span class="icon">📚</span><p>还没有内容</p></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

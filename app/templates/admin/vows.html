@@ -1,0 +1,51 @@
+{% extends "admin/base.html" %}
+{% block title %}约定管理{% endblock %}
+{% block content %}
+<div class="admin-head"><h1>🤝 情侣约定</h1></div>
+
+<div class="admin-grid cols-2" style="align-items:start">
+  <div class="panel">
+    <h3>＋ 写一条约定</h3>
+    <form method="post" action="{{ url_for('admin.vow_new') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row"><label>标题</label><input class="input" name="title" required placeholder="比如：吵架不过夜"></div>
+      <div class="form-row"><label>内容</label><textarea class="textarea" name="content" placeholder="把约定写清楚"></textarea></div>
+      <div class="form-row">
+        <label>类型</label>
+        <select class="input" name="kind">
+          <option value="promise">承诺</option>
+          <option value="rule">约法</option>
+          <option value="wish">愿望</option>
+          <option value="contract">契约</option>
+        </select>
+      </div>
+      <div class="form-row"><label class="checkbox-row"><input type="checkbox" name="require_both" checked> 需要双方签署才生效</label></div>
+      <button class="btn btn-primary" type="submit">创建约定</button>
+    </form>
+  </div>
+
+  <div>
+    {% for vow in vows %}
+      <div class="vow-card {{ 'effective' if vow.is_effective }}">
+        <div class="vow-head">
+          <h4>{{ vow.title }}</h4>
+          <span class="badge {{ 'ok' if vow.is_effective else 'warn' }}">{{ '已生效' if vow.is_effective else '待签署' }}</span>
+        </div>
+        <div class="vow-body">{{ vow.content }}</div>
+        <div class="vow-signs">
+          {% for m in couple.members %}
+            {% set signed = (m.id == couple.user_a_id and vow.signed_a) or (m.id == couple.user_b_id and vow.signed_b) %}
+            <span class="sign-badge {{ 'signed' if signed }}">{{ m.display_name }} {{ '✓ 已签' if signed else '○ 未签' }}</span>
+          {% endfor %}
+          <form method="post" action="{{ url_for('admin.vow_delete', vow_id=vow.id) }}" style="margin-left:auto" onsubmit="return confirm('删除这条约定？')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm" type="submit">删除</button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state"><span class="icon">🤝</span>还没有约定</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

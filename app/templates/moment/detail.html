@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}瞬间 #{{ moment.id }} · {{ site.name }}{% endblock %}
+{% block content %}
+<section class="section" style="padding-top:40px">
+  <div class="container">
+    <div class="moment-stream">
+      {% set liked_ids = liked_ids if liked_ids is defined else [] %}
+      {% include "partials/_moment_card.html" %}
+
+      <div class="panel" id="comments">
+        <h3>全部评论（{{ moment.comments | length }}）</h3>
+        {% for c in moment.comments %}
+          <div class="comment-row" style="padding:10px 0;border-bottom:1px dashed var(--lyf-border)">
+            <span class="c-name">{{ c.display_name }}</span>
+            {% if c.role_text %}<em class="c-role">{{ c.role_text }}</em>{% endif %}
+            {% if c.reply_to %}<span style="font-size:12.5px;color:var(--lyf-text-muted)">回复 {{ c.reply_to.display_name }}</span>{% endif %}
+            <div class="c-text" style="margin-top:4px;color:var(--lyf-text)">{{ c.content }}</div>
+            <small style="color:var(--lyf-text-muted);font-size:12px">{{ c.created_at | humanize }}</small>
+          </div>
+        {% else %}
+          <p style="color:var(--lyf-text-muted)">还没有评论，来说点什么吧。</p>
+        {% endfor %}
+      </div>
+
+      {% if current_user.is_authenticated or site.guest_comment is not defined %}
+      <div class="panel">
+        <h3>写评论</h3>
+        <form method="post" action="{{ url_for('moment.comment', moment_id=moment.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% if not current_user.is_authenticated %}
+            <div class="form-grid">
+              <div class="form-row"><label>昵称</label><input class="input" name="guest_name" required></div>
+              <div class="form-row"><label>你的站点（可选）</label><input class="input" name="guest_site"></div>
+            </div>
+          {% endif %}
+          <div class="form-row"><textarea class="textarea" name="content" required placeholder="说点什么……"></textarea></div>
+          <button class="btn btn-primary" type="submit">发送</button>
+        </form>
+      </div>
+      {% endif %}
+
+      <div style="text-align:center"><a class="btn btn-ghost" href="{{ url_for('moment.index') }}">← 回到瞬间流</a></div>
+    </div>
+  </div>
+</section>
+{% endblock %}

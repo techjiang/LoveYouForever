@@ -1,0 +1,75 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ album.title }}{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>{{ album.title }} <span class="badge">{{ album.photo_count }} 张</span></h1>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('gallery.album', slug=album.slug) }}" target="_blank">前台预览</a>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.albums') }}">← 返回</a>
+  </div>
+</div>
+
+<div class="admin-grid cols-2" style="align-items:start">
+  <div>
+    <div class="panel">
+      <h3>上传照片</h3>
+      <div class="upload-box" data-upload data-multiple data-category="photos" data-field="urls" data-target="photoList">
+        点击或拖拽多张照片到这里
+      </div>
+      <form method="post" action="{{ url_for('admin.photo_add', album_id=album.id) }}" id="photoForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div id="photoList" class="upload-list"></div>
+        <div class="form-grid" style="margin-top:14px">
+          <div class="form-row"><label>统一说明</label><input class="input" name="caption" placeholder="这批照片的说明"></div>
+          <div class="form-row"><label>拍摄日期</label><input class="input" type="date" name="taken_on"></div>
+        </div>
+        <button class="btn btn-primary" type="submit">保存这批照片</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h3>已有照片</h3>
+      {% if album.photos %}
+        <div class="photo-grid">
+          {% for photo in album.photos %}
+            <div class="photo-item">
+              <img src="{{ photo.url }}" alt="{{ photo.caption }}" loading="lazy">
+              <div class="photo-caption">
+                <form method="post" action="{{ url_for('admin.photo_caption', photo_id=photo.id) }}" style="display:flex;gap:4px">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input name="caption" value="{{ photo.caption }}" placeholder="写句说明" style="flex:1;border:none;background:rgba(255,255,255,.9);border-radius:4px;padding:3px 6px;font-size:12px">
+                  <button class="btn btn-sm" style="padding:2px 8px;background:#fff;color:#333">存</button>
+                </form>
+                <form method="post" action="{{ url_for('admin.photo_delete', photo_id=photo.id) }}" style="margin-top:4px">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm" style="padding:2px 8px;background:#e5544b;color:#fff" onclick="return confirm('删除这张照片？')">删</button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p style="color:var(--lyf-text-muted)">还没有照片</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>相册信息</h3>
+    <form method="post" action="{{ url_for('admin.album_edit', album_id=album.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row"><label>名称</label><input class="input" name="title" value="{{ album.title }}"></div>
+      <div class="form-row"><label>描述</label><textarea class="textarea" name="description">{{ album.description }}</textarea></div>
+      <div class="form-row"><label>地点</label><input class="input" name="location" value="{{ album.location }}"></div>
+      <div class="form-row"><label>拍摄日期</label><input class="input" type="date" name="taken_on" value="{{ album.taken_on.isoformat() if album.taken_on else '' }}"></div>
+      <div class="form-row"><label>封面地址</label><input class="input" name="cover" value="{{ album.cover }}"></div>
+      <div class="form-row"><label class="checkbox-row"><input type="checkbox" name="is_public" {{ 'checked' if album.is_public }}> 公开可见</label></div>
+      <button class="btn btn-primary" type="submit" style="width:100%">保存</button>
+    </form>
+    <form method="post" action="{{ url_for('admin.album_delete', album_id=album.id) }}" style="margin-top:12px" onsubmit="return confirm('删除整个相册和其中的照片？')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-danger btn-sm" type="submit" style="width:100%">删除相册</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}分类 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>全部分类</h1>
+    <p>我们把这些日子分门别类地收好了</p>
+  </div>
+</div>
+<section class="section">
+  <div class="container">
+    <div class="cat-grid">
+      {% for cat in categories %}
+        <a class="cat-card" href="{{ url_for('blog.category', slug=cat.slug) }}">
+          <span class="cat-icon">{{ cat.icon or '📁' }}</span>
+          <strong>{{ cat.name }}</strong>
+          <p>{{ cat.description or '看看这里写了什么' }}</p>
+          <span class="cat-count">{{ cat.post_count }} 篇</span>
+        </a>
+      {% else %}
+        <div class="empty-state"><span class="icon">🗂</span>还没有分类</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

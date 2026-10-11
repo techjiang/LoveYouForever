@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ category.name }} · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>{{ category.icon }} {{ category.name }}</h1>
+    <p>{{ category.description or '这个分类下的所有文章' }} · 共 {{ pagination.total }} 篇</p>
+  </div>
+</div>
+<section class="section">
+  <div class="container">
+    {% if posts %}
+      <div class="post-grid">{% for post in posts %}{% include "partials/_card.html" %}{% endfor %}</div>
+      {% include "partials/_pagination.html" %}
+    {% else %}
+      <div class="empty-state"><span class="icon">🗂</span><p>这个分类下还没有文章</p></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

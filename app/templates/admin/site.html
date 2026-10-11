@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+{% block title %}站点设置{% endblock %}
+{% block content %}
+<div class="admin-head"><h1>⚙️ 站点设置</h1></div>
+
+<div class="tabs">
+  {% for key, group in groups.items() %}
+    <a href="{{ url_for('admin.site', tab=key) }}" class="{{ 'active' if key == active_tab }}">{{ group.icon }} {{ group.title }}</a>
+  {% endfor %}
+</div>
+
+{% set group = groups[active_tab] %}
+<form class="panel" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="_group" value="{{ active_tab }}">
+  <h3>{{ group.icon }} {{ group.title }}</h3>
+
+  {% for key, label, ftype, hint in group.fields %}
+    <div class="form-row">
+      {% if ftype == 'bool' %}
+        <label class="checkbox-row"><input type="checkbox" name="{{ key }}" {{ 'checked' if settings.get(key) == '1' }}> {{ label }}</label>
+      {% elif ftype == 'textarea' %}
+        <label>{{ label }}</label>
+        <textarea class="textarea" name="{{ key }}">{{ settings.get(key, '') }}</textarea>
+      {% elif ftype == 'image' %}
+        <label>{{ label }}</label>
+        <input class="input" name="{{ key }}" id="field_{{ key }}" value="{{ settings.get(key, '') }}">
+        <div class="upload-box" data-upload data-category="covers" data-callback="set_{{ key }}" style="margin-top:8px">点击上传</div>
+      {% elif ftype == 'number' %}
+        <label>{{ label }}</label>
+        <input class="input" type="number" name="{{ key }}" value="{{ settings.get(key, '') }}">
+      {% else %}
+        <label>{{ label }}</label>
+        <input class="input" name="{{ key }}" value="{{ settings.get(key, '') }}">
+      {% endif %}
+      {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+    </div>
+  {% endfor %}
+
+  <button class="btn btn-primary" type="submit">保存设置</button>
+</form>
+
+<div class="panel" style="border-left:4px solid var(--lyf-primary);margin-top:20px">
+  <h3>全局署名</h3>
+  <p style="font-size:14px;color:var(--lyf-text-muted)">
+    全站页脚的署名由项目锁定，不可通过任何设置移除或修改：
+  </p>
+  <div style="padding:14px;background:var(--lyf-surface-alt);border-radius:10px">
+    {{ powered_by_html | safe }}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  {% for key, label, ftype, hint in groups[active_tab].fields %}
+    {% if ftype == 'image' %}
+      function set_{{ key }}(url) { document.getElementById('field_{{ key }}').value = url; }
+    {% endif %}
+  {% endfor %}
+</script>
+{% endblock %}

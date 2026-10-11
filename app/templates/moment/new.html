@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}发瞬间 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero"><div class="container"><h1>＋ 发一条瞬间</h1></div></div>
+<section class="section">
+  <div class="container" style="max-width:680px">
+    <div class="panel">
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-row">
+          <label>内容</label>
+          <textarea class="textarea" name="content" style="min-height:120px" placeholder="今天发生了什么？"></textarea>
+        </div>
+        <div class="upload-box" data-upload data-multiple data-category="moments" data-field="images" data-target="imgList">点击或拖拽上传图片</div>
+        <div id="imgList" class="upload-list"></div>
+        <div class="form-grid" style="margin-top:16px">
+          <div class="form-row"><label>位置</label><input class="input" name="location"></div>
+          <div class="form-row"><label>心情</label><input class="input" name="mood" placeholder="😊"></div>
+        </div>
+        <div class="form-row">
+          {% if current_user.partner %}
+            <label class="checkbox-row"><input type="checkbox" name="co_authored"> 和 {{ current_user.partner.display_name }} 一起发</label>
+          {% endif %}
+        </div>
+        <div class="form-row">
+          <label class="checkbox-row"><input type="checkbox" name="is_public" checked> 公开可见</label>
+        </div>
+        <button class="btn btn-primary" type="submit">发布</button>
+        <a class="btn btn-ghost" href="{{ url_for('moment.index') }}">取消</a>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

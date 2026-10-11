@@ -1,0 +1,97 @@
+{% extends "admin/base.html" %}
+{% block title %}插件{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>🧩 插件</h1>
+  <p style="color:var(--lyf-text-muted);font-size:14px;margin:4px 0 0">
+    把 .py 文件丢进 <code>app/plugins/</code> 目录，刷新这页就能看到。
+  </p>
+</div>
+
+<div class="admin-grid cols-2">
+  {% for item in items %}
+    <div class="plugin-card {{ 'enabled' if item.enabled }}">
+      <div class="plugin-head">
+        <div>
+          <h4>{{ item.meta.title }}</h4>
+          <small>v{{ item.meta.version }}{% if item.meta.author %} · {{ item.meta.author }}{% endif %}</small>
+        </div>
+        <form method="post" action="{{ url_for('admin.plugin_toggle', name=item.meta.name) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="switch" title="{{ '点击停用' if item.enabled else '点击启用' }}">
+            <input type="checkbox" {{ 'checked' if item.enabled }} onchange="this.form.submit()">
+            <span class="slider"></span>
+          </label>
+        </form>
+      </div>
+      <p class="plugin-desc">{{ item.meta.description }}</p>
+
+      {% if item.meta.settings %}
+        <form method="post" action="{{ url_for('admin.plugin_config', name=item.meta.name) }}" style="border-top:1px solid var(--lyf-border);padding-top:12px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% for key, label, ftype, default in item.meta.settings %}
+            <div class="form-row" style="margin-bottom:10px">
+              {% if ftype == 'bool' %}
+                <label class="checkbox-row">
+                  <input type="checkbox" name="cfg_{{ key }}" {{ 'checked' if item.config.get(key, default) }}>
+                  {{ label }}
+                </label>
+              {% else %}
+                <label>{{ label }}</label>
+                <input class="input" name="cfg_{{ key }}" value="{{ item.config.get(key, default) }}">
+              {% endif %}
+            </div>
+          {% endfor %}
+          <button class="btn btn-ghost btn-sm" type="submit">保存配置</button>
+        </form>
+      {% endif %}
+
+      <div style="font-size:12px;color:var(--lyf-text-muted)">
+        标识：<code>{{ item.meta.name }}</code>
+        {% if item.enabled %}<span class="badge ok">已启用</span>{% else %}<span class="badge">未启用</span>{% endif %}
+      </div>
+    </div>
+  {% else %}
+    <div class="empty-state"><span class="icon">🧩</span>没有发现插件</div>
+  {% endfor %}
+</div>
+
+{% if orphans %}
+<div class="panel" style="margin-top:20px">
+  <h3>残留记录</h3>
+  <p style="font-size:13.5px;color:var(--lyf-text-muted)">这些插件记录还在数据库里，但目录下的文件已经没了。</p>
+  {% for r in orphans %}
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0">
+      <code>{{ r.name }}</code>
+      <form method="post" action="{{ url_for('admin.plugin_cleanup', name=r.name) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-danger btn-sm" type="submit">清理</button>
+      </form>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="panel" style="margin-top:20px;border-left:4px solid var(--lyf-primary)">
+  <h3>怎么自己写一个插件？</h3>
+  <pre style="background:var(--lyf-surface-alt);padding:16px;border-radius:10px;overflow-x:auto;font-size:13px;line-height:1.6">from app.plugins.base import Plugin
+
+class MyPlugin(Plugin):
+    name = "my_plugin"
+    title = "我的插件"
+    version = "1.0.0"
+    description = "做点有意思的事"
+
+    def footer_html(self):
+        return "&lt;span&gt;来自我的插件&lt;/span&gt;"
+
+    def on_post_render(self, post, html):
+        return html  # 可以在这里二次加工文章内容
+
+PLUGIN = MyPlugin()</pre>
+  <p style="font-size:13.5px;color:var(--lyf-text-muted)">
+    可用钩子：on_install / on_enable / on_disable / on_uninstall / register_blueprint /
+    before_request / after_request / on_post_render / nav_items / footer_html / dashboard_cards
+  </p>
+</div>
+{% endblock %}

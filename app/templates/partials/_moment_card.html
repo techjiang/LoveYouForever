@@ -1,0 +1,67 @@
+<article class="moment-card" id="m{{ moment.id }}">
+  <div class="moment-head">
+    <div class="moment-avatars">
+      {% for a in moment.authors %}
+        {% if a.avatar %}
+          <img class="avatar-sm" src="{{ a.avatar }}" alt="">
+        {% else %}
+          <span class="avatar-sm avatar-fallback">{{ a.display_name[0] }}</span>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div class="moment-meta">
+      <strong>{{ moment.author_line }}</strong>
+      {% if moment.mood %}<span class="moment-mood">{{ moment.mood }}</span>{% endif %}
+      <span class="moment-time">{{ moment.time_group }}{% if moment.location %} · {{ moment.location }}{% endif %}</span>
+    </div>
+    {% if moment.is_pinned %}<span class="pin">📌</span>{% endif %}
+  </div>
+
+  {% if moment.content %}
+    <div class="moment-content">{{ moment.content | nl2br if false else moment.content }}</div>
+  {% endif %}
+
+  {% if moment.image_list %}
+    <div class="moment-images grid-{{ [moment.image_list|length, 4] | min }}">
+      {% for img in moment.image_list %}
+        <a class="moment-img" href="{{ img }}" data-lightbox>
+          <img src="{{ img }}" alt="" loading="lazy">
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="moment-actions">
+    <button class="act-btn like-btn {% if moment.id in liked_ids %}liked{% endif %}" data-moment="{{ moment.id }}">
+      <span class="heart">❤</span> <span class="like-count">{{ moment.like_count }}</span>
+    </button>
+    <a class="act-btn" href="{{ url_for('moment.detail', moment_id=moment.id) }}#comments">
+      💬 {{ moment.comment_count }}
+    </a>
+  </div>
+
+  {% if moment.comments %}
+    <div class="moment-comments">
+      {% for c in moment.comments[:3] %}
+        <div class="comment-row">
+          <span class="c-name">{{ c.display_name }}{% if c.role_text %}<em class="c-role">{{ c.role_text }}</em>{% endif %}</span>
+          <span class="c-text">{{ c.content }}</span>
+        </div>
+      {% endfor %}
+      {% if moment.comments | length > 3 %}
+        <a class="more-comments" href="{{ url_for('moment.detail', moment_id=moment.id) }}#comments">查看全部 {{ moment.comments | length }} 条评论</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if current_user.is_authenticated or site.guest_comment %}
+  <form class="moment-comment-form" method="post" action="{{ url_for('moment.comment', moment_id=moment.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if not current_user.is_authenticated %}
+      <input type="text" name="guest_name" placeholder="昵称" class="c-input c-name-input" required>
+    {% endif %}
+    <input type="text" name="content" placeholder="说点什么……" class="c-input" required>
+    <button type="submit" class="btn btn-primary btn-sm">发送</button>
+  </form>
+  {% endif %}
+</article>

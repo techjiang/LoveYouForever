@@ -1,0 +1,106 @@
+{% extends "admin/base.html" %}
+{% block title %}主题配色{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>🎨 主题与配色</h1>
+  <p style="color:var(--lyf-text-muted);font-size:14px;margin:4px 0 0">
+    选一个预设，或者自己调色。保存成自定义主题后会写进 <code>themes/</code> 目录。
+  </p>
+</div>
+
+<form method="post" id="themeForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="_action" value="apply">
+
+  <div class="panel">
+    <h3>预设主题</h3>
+    <div class="theme-grid">
+      {% for key, t in themes.items() %}
+        <label class="theme-card {{ 'selected' if key == current_key }}">
+          <input type="radio" name="theme_key" value="{{ key }}" {{ 'checked' if key == current_key }} hidden>
+          <div class="theme-swatch">
+            {% for token in ['primary', 'accent', 'hero_to', 'surface_alt', 'bg'] %}
+              <span style="background:{{ t.colors[token] if t.colors and token in t.colors else '#ccc' }}"></span>
+            {% endfor %}
+          </div>
+          <div class="meta">
+            <strong>{{ t.title }}</strong>
+            <small>{{ t.description }}</small>
+          </div>
+        </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>显示模式</h3>
+    <div style="display:flex;gap:22px;flex-wrap:wrap">
+      <label class="checkbox-row"><input type="radio" name="theme_mode" value="light" {{ 'checked' if current_mode == 'light' }}> ☀️ 浅色</label>
+      <label class="checkbox-row"><input type="radio" name="theme_mode" value="dark" {{ 'checked' if current_mode == 'dark' }}> 🌙 深色</label>
+      <label class="checkbox-row"><input type="radio" name="theme_mode" value="auto" {{ 'checked' if current_mode == 'auto' }}> 🌗 跟随系统</label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>自定义配色</h3>
+    <p style="font-size:13.5px;color:var(--lyf-text-muted);margin-top:0">
+      留空表示沿用预设主题的颜色。改完之后点「应用」立即生效。
+    </p>
+    <div class="color-row">
+      {% for token, label in tokens.items() %}
+        <div class="color-field">
+          <input type="color" name="color_{{ token }}" value="{{ resolved.get(token, '#ff5c8a') }}" data-token="{{ token }}">
+          <div class="cf-text">
+            <label>{{ label }}</label>
+            <input class="input" style="padding:4px 8px;font-size:12.5px" value="{{ resolved.get(token, '') }}" readonly data-hex="{{ token }}">
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+    <button class="btn btn-primary" type="submit">✓ 应用主题</button>
+    <button class="btn btn-ghost" type="submit" name="_action" value="save_custom">💾 另存为自定义主题</button>
+  </div>
+
+  <div class="panel">
+    <h3>另存为自定义主题</h3>
+    <div class="form-grid">
+      <div class="form-row"><label>主题名（英文/汉字均可，作为文件名）</label><input class="input" name="custom_name" placeholder="my-theme"></div>
+      <div class="form-row"><label>描述</label><input class="input" name="custom_desc" placeholder="我们的专属配色"></div>
+    </div>
+  </div>
+</form>
+
+<div class="panel">
+  <h3>删除自定义主题</h3>
+  <form method="post" style="display:flex;gap:10px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="_action" value="delete">
+    <input class="input" name="theme_key" placeholder="主题文件名（不含 .json）" style="max-width:260px">
+    <button class="btn btn-danger" type="submit" onclick="return confirm('删除这个自定义主题？')">删除</button>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // 选主题卡片高亮
+  document.querySelectorAll('.theme-card input[type=radio]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      document.querySelectorAll('.theme-card').forEach(function (c) { c.classList.remove('selected'); });
+      radio.closest('.theme-card').classList.add('selected');
+    });
+  });
+  // 色板与十六进制输入联动
+  document.querySelectorAll('input[type=color][data-token]').forEach(function (picker) {
+    var token = picker.getAttribute('data-token');
+    var hex = document.querySelector('[data-hex="' + token + '"]');
+    picker.addEventListener('input', function () {
+      if (hex) hex.value = picker.value;
+      var root = document.documentElement;
+      root.style.setProperty('--lyf-' + token.replace(/_/g, '-'), picker.value);
+    });
+  });
+</script>
+{% endblock %}

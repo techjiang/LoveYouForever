@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}注册 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>创建账号</h1>
+    <p class="sub">注册后就可以写文章、发瞬间了</p>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row">
+        <label>用户名</label>
+        <input class="input" name="username" required autofocus autocomplete="username">
+        <p class="hint">至少 3 个字符，支持汉字</p>
+      </div>
+      <div class="form-row">
+        <label>昵称</label>
+        <input class="input" name="nickname" placeholder="TA 平时怎么叫你">
+      </div>
+      <div class="form-row">
+        <label>邮箱（可选）</label>
+        <input class="input" type="email" name="email">
+      </div>
+      <div class="form-row">
+        <label>我在关系里的称呼</label>
+        <input class="input" name="role_label" placeholder="老公 / 老婆 / 男朋友 / 女朋友 / 随便写">
+        <p class="hint">之后文章和瞬间会带上这个称呼。</p>
+      </div>
+      <div class="form-row">
+        <label>密码</label>
+        <input class="input" type="password" name="password" required minlength="6" autocomplete="new-password">
+      </div>
+      <div class="form-row">
+        <label>确认密码</label>
+        <input class="input" type="password" name="confirm" required minlength="6" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%">注册</button>
+    </form>
+    <p class="auth-switch"><a href="{{ url_for('auth.login') }}">已有账号？去登录</a></p>
+  </div>
+</div>
+{% endblock %}

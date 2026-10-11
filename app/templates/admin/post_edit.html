@@ -1,0 +1,123 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ '编辑文章' if post else '新建文章' }}{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>{{ '编辑文章' if post else '新建文章' }}</h1>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.posts') }}">← 返回列表</a>
+  </div>
+</div>
+
+<form method="post" id="postForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="admin-grid cols-2" style="grid-template-columns:minmax(0,1fr) 320px;align-items:start">
+    <div>
+      <div class="panel">
+        <div class="form-row">
+          <label>标题</label>
+          <input class="input" type="text" name="title" required value="{{ post.title if post else '' }}" placeholder="给这篇文章起个名字">
+        </div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label>URL 别名</label>
+            <input class="input" type="text" name="slug" value="{{ post.slug if post else '' }}" placeholder="留空自动生成">
+          </div>
+          <div class="form-row">
+            <label>摘要</label>
+            <input class="input" type="text" name="summary" value="{{ post.summary if post else '' }}" placeholder="留空自动截取">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span class="editor-pane-title" style="margin:0">正文（Markdown）</span>
+          <span style="font-size:12.5px;color:var(--lyf-text-muted)">
+            预计 <strong id="readingMinutes">{{ post.reading_minutes if post else 1 }}</strong> 分钟读完
+          </span>
+        </div>
+        <div class="editor-split">
+          <div>
+            <textarea id="contentMd" name="content_md" placeholder="# 标题&#10;&#10;写点什么……&#10;&#10;支持 ::love[情话] ::vow[誓言] 这样的彩蛋语法">{{ post.content_md if post else '' }}</textarea>
+          </div>
+          <div>
+            <span class="editor-pane-title">实时预览</span>
+            <div id="mdPreview" class="post-body">{{ post.content_html | safe if post else '<p style="color:var(--lyf-text-muted)">开始输入后这里会实时渲染</p>' | safe }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h3>发布</h3>
+        <div class="form-row">
+          <label>状态</label>
+          <select class="input" name="status">
+            <option value="published" {{ 'selected' if post and post.status == 'published' }}>已发布</option>
+            <option value="draft" {{ 'selected' if post and post.status == 'draft' }}>草稿</option>
+            <option value="private" {{ 'selected' if post and post.status == 'private' }}>私密</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-row"><input type="checkbox" name="is_pinned" {{ 'checked' if post and post.is_pinned }}> 置顶到首页</label>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-row"><input type="checkbox" name="allow_comment" {{ 'checked' if not post or post.allow_comment }}> 允许评论</label>
+        </div>
+        <button class="btn btn-primary" type="submit" style="width:100%">💾 保存文章</button>
+      </div>
+
+      <div class="panel">
+        <h3>归属</h3>
+        <div class="form-row">
+          <label>分类</label>
+          <select class="input" name="category_id">
+            <option value="">未分类</option>
+            {% for c in categories %}
+              <option value="{{ c.id }}" {{ 'selected' if post and post.category_id == c.id }}>{{ c.icon }} {{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-row">
+          <label>共同署名（夫妻共创）</label>
+          <select class="input" name="co_author_id">
+            <option value="">不共同署名</option>
+            {% for u in users %}
+              {% if not post or u.id != post.author_id %}
+                <option value="{{ u.id }}" {{ 'selected' if post and post.co_author_id == u.id }}>
+                  {{ u.display_name }}{% if u.role_text %}（{{ u.role_text }}）{% endif %}
+                </option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          <p class="hint">选了之后文章会显示两个人的名字。</p>
+        </div>
+        <div class="form-row">
+          <label>标签</label>
+          <input class="input" type="text" name="tags" value="{{ post.tag_names | join(', ') if post else '' }}" placeholder="逗号分隔，比如：日常, 纪念日">
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>封面图</h3>
+        <input class="input" type="text" name="cover" id="coverInput" value="{{ post.cover if post else '' }}" placeholder="图片地址">
+        <div class="upload-box" data-upload data-category="covers" data-callback="setCover" style="margin-top:10px">
+          点击或拖拽上传封面
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>内容互联</h3>
+        <input class="input" type="text" name="related_ids" value="{{ post.related_ids if post else '' }}" placeholder="相关文章的 ID，逗号分隔">
+        <p class="hint">留空则自动按标签和分类推荐相关内容。</p>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+  function setCover(url) { document.getElementById('coverInput').value = url; }
+</script>
+{% endblock %}

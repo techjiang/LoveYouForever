@@ -1,0 +1,94 @@
+{% extends "admin/base.html" %}
+{% block title %}备份与恢复{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>🛡 备份与恢复</h1>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.backup_export_json') }}">导出 JSON</a>
+  </div>
+</div>
+
+<div class="admin-grid cols-4" style="margin-bottom:22px">
+  <div class="metric-card"><div class="label">备份总占用</div><div class="value" style="font-size:22px">{{ disk.total_human }}</div></div>
+  <div class="metric-card"><div class="label">备份份数</div><div class="value">{{ disk.count }}</div></div>
+  <div class="metric-card accent-green"><div class="label">磁盘剩余</div><div class="value" style="font-size:22px">{{ disk.free_human }}</div></div>
+  <div class="metric-card accent-amber">
+    <div class="label">自动备份</div>
+    <div class="value" style="font-size:20px">{{ '已开启' if settings.get('auto_backup') == '1' else '未开启' }}</div>
+  </div>
+</div>
+
+<div class="admin-grid cols-2" style="align-items:start">
+  <div class="panel">
+    <h3>＋ 立即备份</h3>
+    <form method="post" action="{{ url_for('admin.backup_create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row"><label>备注</label><input class="input" name="note" placeholder="比如：升级前"></div>
+      <div class="form-row"><label class="checkbox-row"><input type="checkbox" name="include_uploads" checked> 一并打包上传的图片</label></div>
+      <button class="btn btn-primary" type="submit">创建快照</button>
+    </form>
+    <p style="font-size:13px;color:var(--lyf-text-muted);margin-top:14px">
+      备份会记录 SHA-256 校验值，随时可以验证完整性。超出的旧备份会按保留数量自动轮转。
+    </p>
+  </div>
+
+  <div class="panel">
+    <h3>从 JSON 导入</h3>
+    <form method="post" action="{{ url_for('admin.backup_import') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row"><input class="input" type="file" name="file" accept=".json" required></div>
+      <div class="form-row"><label class="checkbox-row"><input type="checkbox" name="wipe"> 导入前清空现有内容（危险）</label></div>
+      <button class="btn btn-ghost" type="submit">开始导入</button>
+    </form>
+    <p style="font-size:13px;color:var(--lyf-text-muted);margin-top:14px">
+      导入前系统会自动做一份安全备份。适合换服务器或误删后找回。
+    </p>
+  </div>
+</div>
+
+<div class="table-wrap" style="margin-top:22px">
+  <table class="data">
+    <thead><tr><th>文件名</th><th>大小</th><th>类型</th><th>时间</th><th>校验</th><th style="width:250px">操作</th></tr></thead>
+    <tbody>
+    {% for rec in records %}
+      <tr>
+        <td class="row-title" style="font-size:13.5px">{{ rec.filename }}</td>
+        <td>{{ rec.size_human }}</td>
+        <td><span class="badge">{{ rec.kind }}</span></td>
+        <td style="font-size:13px;color:var(--lyf-text-muted)">{{ rec.created_at | fmt_date('%Y-%m-%d %H:%M') }}</td>
+        <td><code style="font-size:11.5px">{{ rec.checksum[:10] }}…</code></td>
+        <td class="actions">
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.backup_download', backup_id=rec.id) }}">下载</a>
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.backup_verify', backup_id=rec.id) }}" target="_blank">校验</a>
+          <form method="post" action="{{ url_for('admin.backup_restore', backup_id=rec.id) }}" style="display:inline"
+                onsubmit="return confirm('恢复会覆盖当前数据（会先自动备份一份）。确定继续？')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ghost btn-sm" type="submit">恢复</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.backup_delete', backup_id=rec.id) }}" style="display:inline"
+                onsubmit="return confirm('删除这份备份？')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm" type="submit">删除</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--lyf-text-muted)">
+        还没有备份。人生大事，建议马上点一次「创建快照」。
+      </td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="panel" style="margin-top:22px;border-left:4px solid var(--lyf-primary)">
+  <h3>自动备份怎么做？</h3>
+  <p style="font-size:14px;color:var(--lyf-text-muted)">
+    配合系统 crontab 使用，比如每天凌晨 3 点备份一次：
+  </p>
+  <pre style="background:var(--lyf-surface-alt);padding:14px;border-radius:10px;overflow-x:auto;font-size:13px">0 3 * * * cd /path/to/loveyouforever && .venv/bin/flask backup --note "每日自动备份"</pre>
+  <p style="font-size:14px;color:var(--lyf-text-muted)">
+    也可以用命令行：<code>flask backup</code>、<code>flask backup-list</code>、<code>flask restore 文件名</code>。
+  </p>
+</div>
+{% endblock %}

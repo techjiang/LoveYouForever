@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}瞬间时间线 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>🕐 瞬间时间线</h1>
+    <p>{{ grouped | length }} 个月份的碎碎念</p>
+  </div>
+</div>
+<section class="section">
+  <div class="container" style="max-width:780px">
+    {% for month in grouped | sort(reverse=True) %}
+      <div class="archive-year">
+        <h2 style="font-size:22px">{{ month }} <small>{{ grouped[month] | length }} 条</small></h2>
+        <div class="timeline" style="margin-top:16px">
+          {% for m in grouped[month] %}
+            <div class="timeline-item">
+              <h4>{{ m.author_line }}</h4>
+              <time>{{ m.created_at | fmt_date('%m-%d %H:%M') }}{% if m.location %} · {{ m.location }}{% endif %}</time>
+              <p>{{ m.content[:100] }}{% if m.content | length > 100 %}…{% endif %}</p>
+              {% if m.image_list %}
+                <div style="display:flex;gap:6px;margin-top:8px">
+                  {% for img in m.image_list[:4] %}
+                    <img src="{{ img }}" style="width:56px;height:56px;object-fit:cover;border-radius:8px" loading="lazy">
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <a href="{{ url_for('moment.detail', moment_id=m.id) }}" style="font-size:13px;margin-top:6px;display:inline-block">查看 →</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state"><span class="icon">💭</span><p>还没有瞬间</p></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

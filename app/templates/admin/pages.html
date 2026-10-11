@@ -1,0 +1,67 @@
+{% extends "admin/base.html" %}
+{% block title %}页面管理{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>页面管理</h1>
+  <div class="actions">
+    <form method="post" action="{{ url_for('admin.custom_page_new') }}" style="display:flex;gap:8px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input class="input" name="title" placeholder="新页面标题" required style="width:180px">
+      <button class="btn btn-primary btn-sm" type="submit">＋ 新建自定义页</button>
+    </form>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>内建页面</h3>
+  <div class="table-wrap" style="border:none">
+    <table class="data">
+      <thead><tr><th>页面</th><th>标识</th><th>导航</th><th>操作</th></tr></thead>
+      <tbody>
+      {% for p in pages %}
+        <tr>
+          <td class="row-title">{{ p.title }}</td>
+          <td><code>{{ p.key }}</code></td>
+          <td>{% if p.show_in_nav %}<span class="badge ok">显示</span>{% else %}<span class="badge">隐藏</span>{% endif %}</td>
+          <td class="actions">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('misc.page', key=p.key) }}" target="_blank">预览</a>
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.page_edit', page_id=p.id) }}">编辑</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>自定义页面</h3>
+  <div class="table-wrap" style="border:none">
+    <table class="data">
+      <thead><tr><th>标题</th><th>路径</th><th>导航</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+      {% for p in custom_pages %}
+        <tr>
+          <td class="row-title">{{ p.title }}</td>
+          <td><code>/{{ p.slug }}</code></td>
+          <td>{% if p.show_in_nav %}<span class="badge ok">显示</span>{% else %}<span class="badge">隐藏</span>{% endif %}</td>
+          <td><span class="badge {{ 'ok' if p.status == 'published' else 'warn' }}">{{ '已发布' if p.status == 'published' else '草稿' }}</span></td>
+          <td class="actions">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('misc.custom_page', slug=p.slug) }}" target="_blank">预览</a>
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.custom_page_edit', pid=p.id) }}">编辑</a>
+            <form method="post" action="{{ url_for('admin.custom_page_delete', pid=p.id) }}" style="display:inline" onsubmit="return confirm('删除这个页面？')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-danger btn-sm" type="submit">删除</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--lyf-text-muted)">
+          还没有自定义页面。可以创建「我们的清单」「旅行地图」之类的页面。
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

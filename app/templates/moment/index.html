@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}瞬间 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div>
+      <h1>💭 我们的瞬间</h1>
+      <p>像朋友圈，但这里只有我们两个人</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('moment.timeline') }}">按时间看</a>
+      {% if current_user.is_authenticated %}
+        <a class="btn btn-primary btn-sm" href="{{ url_for('moment.new') }}">＋ 发一条</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="moment-stream">
+      {% if current_user.is_authenticated %}
+        <div class="moment-composer">
+          <form method="post" action="{{ url_for('moment.new') }}" id="quickCompose">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <textarea name="content" placeholder="今天想记点什么？"></textarea>
+            <div class="upload-box" data-upload data-multiple data-category="moments" data-field="images" data-target="quickImgs" style="margin-top:10px;padding:12px">点击或拖拽加图片</div>
+            <div id="quickImgs" class="upload-list"></div>
+            <div class="composer-bar" style="margin-top:12px">
+              <input class="input" name="location" placeholder="位置" style="max-width:140px">
+              <input class="input" name="mood" placeholder="心情 😊" style="max-width:110px">
+              {% if current_user.partner %}
+                <label class="checkbox-row" style="font-size:13.5px">
+                  <input type="checkbox" name="co_authored"> 一起发
+                </label>
+              {% endif %}
+              <span class="spacer"></span>
+              <button class="btn btn-primary" type="submit">发布</button>
+            </div>
+          </form>
+        </div>
+      {% endif %}
+
+      {% for moment in moments %}
+        {% include "partials/_moment_card.html" %}
+      {% else %}
+        <div class="empty-state"><span class="icon">💭</span><p>还没有瞬间</p></div>
+      {% endfor %}
+    </div>
+    {% include "partials/_pagination.html" %}
+  </div>
+</section>
+{% endblock %}

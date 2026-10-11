@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}个人资料 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container"><h1>个人资料</h1><p>你是谁，在这里由你自己决定</p></div>
+</div>
+<section class="section">
+  <div class="container" style="max-width:760px">
+    <div class="panel">
+      <h3>基本信息</h3>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          <div class="form-row">
+            <label>昵称</label>
+            <input class="input" name="nickname" value="{{ current_user.nickname }}">
+          </div>
+          <div class="form-row">
+            <label>邮箱</label>
+            <input class="input" type="email" name="email" value="{{ current_user.email or '' }}">
+          </div>
+          <div class="form-row">
+            <label>关系称呼</label>
+            <input class="input" name="role_label" value="{{ current_user.role_label }}" placeholder="老公 / 老婆 / 自定义">
+          </div>
+          <div class="form-row">
+            <label>专属称号</label>
+            <input class="input" name="pet_title" value="{{ current_user.pet_title }}" placeholder="宇宙第一可爱">
+          </div>
+        </div>
+        <div class="form-row">
+          <label>简介</label>
+          <textarea class="textarea" name="bio">{{ current_user.bio }}</textarea>
+        </div>
+        <div class="form-row">
+          <label>头像地址</label>
+          <input class="input" name="avatar" value="{{ current_user.avatar or '' }}" id="avatarInput">
+          <div class="upload-box" data-upload data-category="avatars" data-callback="setAvatar" style="margin-top:8px">点击上传头像</div>
+        </div>
+        <button class="btn btn-primary" type="submit">保存资料</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h3>修改密码</h3>
+      <form method="post" action="{{ url_for('auth.change_password') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-row"><label>原密码</label><input class="input" type="password" name="old_password" required></div>
+        <div class="form-grid">
+          <div class="form-row"><label>新密码</label><input class="input" type="password" name="new_password" required minlength="6"></div>
+          <div class="form-row"><label>确认新密码</label><input class="input" type="password" name="confirm_password" required minlength="6"></div>
+        </div>
+        <button class="btn btn-ghost" type="submit">修改密码</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  function setAvatar(url) { document.getElementById('avatarInput').value = url; }
+</script>
+{% endblock %}

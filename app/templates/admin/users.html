@@ -1,0 +1,66 @@
+{% extends "admin/base.html" %}
+{% block title %}用户管理{% endblock %}
+{% block content %}
+<div class="admin-head"><h1>👥 用户管理</h1></div>
+<div class="admin-grid cols-2" style="align-items:start">
+  <div class="panel">
+    <h3>＋ 新建用户</h3>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row"><label>用户名</label><input class="input" name="username" required></div>
+      <div class="form-row"><label>昵称</label><input class="input" name="nickname"></div>
+      <div class="form-row"><label>邮箱</label><input class="input" type="email" name="email"></div>
+      <div class="form-row"><label>密码</label><input class="input" type="password" name="password" required minlength="6"></div>
+      <div class="form-row">
+        <label>关系称呼</label>
+        <input class="input" name="role_label" placeholder="老公 / 老婆 / 男朋友 / 女朋友 / 自定义">
+      </div>
+      <div class="form-row"><label class="checkbox-row"><input type="checkbox" name="is_admin"> 管理员</label></div>
+      <button class="btn btn-primary" type="submit">创建用户</button>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>用户</th><th>称呼</th><th>关系</th><th>角色</th><th>操作</th></tr></thead>
+      <tbody>
+      {% for u in users %}
+        <tr>
+          <td>
+            <strong class="row-title">{{ u.display_name }}</strong>
+            <div style="font-size:12.5px;color:var(--lyf-text-muted)">@{{ u.username }}</div>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin.user_edit', user_id=u.id) }}" style="display:flex;gap:6px;flex-wrap:wrap">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input class="input" name="role_label" value="{{ u.role_label }}" placeholder="称呼" style="width:90px">
+              <input class="input" name="nickname" value="{{ u.nickname }}" style="width:100px">
+              <input class="input" type="password" name="new_password" placeholder="改密码" style="width:100px">
+              <label class="checkbox-row" style="font-size:12.5px"><input type="checkbox" name="is_admin" {{ 'checked' if u.is_admin }}> 管理员</label>
+              <label class="checkbox-row" style="font-size:12.5px"><input type="checkbox" name="is_active" {{ 'checked' if u.is_active_account }}> 启用</label>
+              <button class="btn btn-ghost btn-sm" type="submit">保存</button>
+            </form>
+          </td>
+          <td>
+            {% if u.sealed %}<span class="badge primary">已永封</span>
+            {% elif u.couple_id %}<span class="badge ok">已绑定</span>
+            {% else %}<span class="badge">单身</span>{% endif %}
+          </td>
+          <td>{% if u.is_admin %}<span class="badge primary">管理员</span>{% endif %}</td>
+          <td class="actions">
+            {% if not u.sealed and not u.couple_id and u.id != current_user.id %}
+              <form method="post" action="{{ url_for('admin.user_delete', user_id=u.id) }}" onsubmit="return confirm('删除用户 {{ u.username }}？')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-danger btn-sm" type="submit">删除</button>
+              </form>
+            {% else %}
+              <span style="font-size:12.5px;color:var(--lyf-text-muted)">不可删除</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

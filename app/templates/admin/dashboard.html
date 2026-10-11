@@ -1,0 +1,114 @@
+{% extends "admin/base.html" %}
+{% block title %}仪表盘{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <div>
+    <h1>仪表盘</h1>
+    <p style="margin:4px 0 0;color:var(--lyf-text-muted);font-size:14px">
+      欢迎回来，{{ current_user.display_name }}
+      {% if couple %}· 你们已经相爱 <strong style="color:var(--lyf-primary)">{{ stats.days }}</strong> 天{% endif %}
+    </p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.post_new') }}">✍️ 写文章</a>
+    <a class="btn btn-primary btn-sm" href="{{ url_for('admin.backup') }}">🛡 立即备份</a>
+  </div>
+</div>
+
+{% if couple and tampered is defined and tampered %}
+  <div class="panel" style="border-color:#e5544b;background:#fdeaea">
+    <strong style="color:#c0392b">⚠️ 检测到情侣关系数据被外部修改</strong>
+    <p style="margin:6px 0 0;font-size:14px">关系指纹对不上，请检查数据库是否被人为改动。</p>
+  </div>
+{% endif %}
+
+<div class="admin-grid cols-4" style="margin-bottom:22px">
+  <div class="metric-card"><div class="label">文章总数</div><div class="value">{{ stats.posts }}<span class="unit">篇</span></div></div>
+  <div class="metric-card"><div class="label">已发布</div><div class="value">{{ stats.published }}<span class="unit">篇</span></div></div>
+  <div class="metric-card accent-amber"><div class="label">瞬间</div><div class="value">{{ stats.moments }}<span class="unit">条</span></div></div>
+  <div class="metric-card accent-green"><div class="label">总阅读量</div><div class="value">{{ stats.total_views }}</div></div>
+</div>
+
+<div class="admin-grid cols-2" style="margin-bottom:22px">
+  <div class="panel">
+    <h3>📈 近 14 天发布趋势</h3>
+    <div class="spark">
+      {% set maxv = trend | map(attribute='count') | max %}
+      {% for d in trend %}
+        <span style="height: {{ (d.count / (maxv or 1) * 100) | round(1) }}%" title="{{ d.date }}：{{ d.count }} 篇"></span>
+      {% endfor %}
+    </div>
+    <div class="spark-legend">
+      {% for d in trend %}<span>{{ d.date }}</span>{% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>💾 存储与备份</h3>
+    <div class="admin-grid cols-2" style="gap:12px">
+      <div><div class="label" style="font-size:12.5px;color:var(--lyf-text-muted)">备份占用</div><strong>{{ disk.total_human }}</strong></div>
+      <div><div class="label" style="font-size:12.5px;color:var(--lyf-text-muted)">备份份数</div><strong>{{ disk.count }}</strong></div>
+      <div><div class="label" style="font-size:12.5px;color:var(--lyf-text-muted)">磁盘剩余</div><strong>{{ disk.free_human }}</strong></div>
+      <div><div class="label" style="font-size:12.5px;color:var(--lyf-text-muted)">相册照片</div><strong>{{ stats.photos }}</strong></div>
+    </div>
+    <div style="margin-top:16px">
+      <form method="post" action="{{ url_for('admin.backup_create') }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="note" value="仪表盘快捷备份">
+        <button class="btn btn-primary btn-sm" type="submit">立刻备份一次</button>
+      </form>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('admin.backup') }}">查看全部</a>
+    </div>
+  </div>
+</div>
+
+{% if plugin_cards %}
+<div class="admin-grid cols-3" style="margin-bottom:22px">
+  {% for card in plugin_cards %}
+    <div class="metric-card {{ 'accent-amber' if card.accent == 'amber' else '' }}">
+      <div class="label">{{ card.title }}</div>
+      {% if card.value is defined %}
+        <div class="value">{{ card.value }}<span class="unit">{{ card.unit or '' }}</span></div>
+      {% elif card.rows is defined %}
+        {% for item in card.rows %}
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;padding:3px 0">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="admin-grid cols-2">
+  <div class="panel">
+    <h3>📝 最近文章</h3>
+    {% if recent_posts %}
+      {% for post in recent_posts %}
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px dashed var(--lyf-border)">
+          <a href="{{ url_for('admin.post_edit', post_id=post.id) }}" style="color:var(--lyf-text);font-size:14.5px">{{ post.title }}</a>
+          <span class="badge {{ 'ok' if post.status == 'published' else 'warn' }}">{{ '已发布' if post.status == 'published' else '草稿' }}</span>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:var(--lyf-text-muted);font-size:14px">还没有文章，去写第一篇吧。</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h3>💭 最近瞬间</h3>
+    {% if recent_moments %}
+      {% for m in recent_moments %}
+        <div style="padding:9px 0;border-bottom:1px dashed var(--lyf-border)">
+          <div style="font-size:14px">{{ m.content[:60] }}{% if m.content | length > 60 %}…{% endif %}</div>
+          <small style="color:var(--lyf-text-muted);font-size:12px">{{ m.author.display_name }} · {{ m.created_at | humanize }}</small>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:var(--lyf-text-muted);font-size:14px">还没有瞬间。</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{
+  "title": "极光",
+  "description": "自定义主题示例：把文件放在 themes/ 目录下，后台刷新即可选用",
+  "mode": "dark",
+  "colors": {
+    "primary": "#5eead4",
+    "primary_soft": "#123a38",
+    "accent": "#c084fc",
+    "bg": "#0b1220",
+    "surface": "#131c2e",
+    "surface_alt": "#1b2740",
+    "text": "#e8f1ff",
+    "text_muted": "#8ba0bd",
+    "border": "#25334d",
+    "hero_from": "#1b3a4b",
+    "hero_to": "#0b1220"
+  }
+}

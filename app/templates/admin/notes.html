@@ -1,0 +1,19 @@
+{% extends "admin/base.html" %}
+{% block title %}小纸条{% endblock %}
+{% block content %}
+<div class="admin-head"><h1>💌 小纸条</h1></div>
+<div class="admin-grid cols-3">
+  {% for note in notes %}
+    <div class="plugin-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:14px">{{ note.sender.display_name if note.sender else '—' }} → {{ note.receiver.display_name if note.receiver else '公开' }}</strong>
+        <small style="color:var(--lyf-text-muted)">{{ note.created_at | fmt_date('%m-%d') }}</small>
+      </div>
+      <p style="margin:0;font-size:14.5px">{{ note.content }}</p>
+      {% if note.deliver_at %}<span class="badge warn">定时 {{ note.deliver_at | fmt_date('%Y-%m-%d %H:%M') }}</span>{% endif %}
+    </div>
+  {% else %}
+    <div class="empty-state"><span class="icon">💌</span>还没有小纸条</div>
+  {% endfor %}
+</div>
+{% endblock %}

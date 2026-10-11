@@ -1,0 +1,127 @@
+{% extends "admin/base.html" %}
+{% block title %}情侣关系{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>💞 情侣关系</h1>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('couple.home') }}">前台查看</a>
+  </div>
+</div>
+
+{% if tampered %}
+<div class="panel" style="border-color:#e5544b;background:#fdeaea">
+  <strong style="color:#c0392b">⚠️ 关系指纹校验失败</strong>
+  <p style="margin:6px 0 0;font-size:14px">数据库里的成员记录与封存指纹对不上，可能被人为篡改过。</p>
+</div>
+{% endif %}
+
+{% if couple %}
+  <div class="admin-grid cols-4" style="margin-bottom:22px">
+    <div class="metric-card"><div class="label">相爱天数</div><div class="value">{{ stats.days }}<span class="unit">天</span></div></div>
+    <div class="metric-card"><div class="label">共同文章</div><div class="value">{{ stats.posts }}</div></div>
+    <div class="metric-card"><div class="label">共同瞬间</div><div class="value">{{ stats.moments }}</div></div>
+    <div class="metric-card accent-amber"><div class="label">签署约定</div><div class="value">{{ stats.vows }}</div></div>
+  </div>
+
+  <div class="admin-grid cols-2">
+    <div class="panel">
+      <h3>关系状态</h3>
+      <p><strong>名称：</strong>{{ couple.name }}</p>
+      <p><strong>宣言：</strong>{{ couple.slogan or '—' }}</p>
+      <p><strong>绑定时间：</strong>{{ couple.bound_at | fmt_date('%Y-%m-%d %H:%M') if couple.bound_at else '—' }}</p>
+      <p><strong>状态：</strong>
+        <span class="badge {{ 'ok' if couple.sealed else 'primary' }}">{{ couple.status_text }}</span>
+      </p>
+      <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap">
+        {% for m in couple.members %}
+          <div style="display:flex;align-items:center;gap:10px">
+            {% if m.avatar %}<img class="avatar-sm" src="{{ m.avatar }}">{% else %}
+              <span class="avatar-sm avatar-fallback">{{ m.display_name[0] }}</span>{% endif %}
+            <div>
+              <strong>{{ m.display_name }}</strong>
+              <div style="font-size:12.5px;color:var(--lyf-text-muted)">{{ m.role_text or '未设置称呼' }}{% if m.sealed %} · 已封存{% endif %}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if not couple.sealed and couple.is_complete %}
+        <form method="post" action="{{ url_for('admin.seal') }}" style="margin-top:22px;border-top:1px solid var(--lyf-border);padding-top:18px"
+              onsubmit="return confirm('永封后将永久无法解除或更换，确定吗？')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <p style="font-size:13.5px;color:var(--lyf-text-muted);margin-top:0">
+            永封是单向操作：之后任何界面都找不到解绑入口，数据库层面也会写入不可逆指纹。
+          </p>
+          <div style="display:flex;gap:10px">
+            <input class="input" name="confirm" placeholder='输入「我确定」' style="max-width:200px">
+            <button class="btn btn-danger" type="submit">🔒 永久封存这段关系</button>
+          </div>
+        </form>
+      {% elif couple.sealed %}
+        <div class="seal-banner" style="margin-top:22px">
+          <h2>🔒 已永封</h2>
+          <p>封存于 {{ couple.sealed_at | fmt_date('%Y-%m-%d %H:%M') }}，从此不可解除、不可更换。</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h3>绑定与握手码</h3>
+      <p style="font-size:13.5px;color:var(--lyf-text-muted)">
+        双方必须都使用本博客系统。一方生成握手码交给另一方，另一方在自己的站点输入即可建立关系。
+      </p>
+      <form method="post" action="{{ url_for('admin.create_token') }}" style="display:flex;gap:10px;margin-bottom:18px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <select class="input" name="user_id">
+          {% for u in users %}
+            <option value="{{ u.id }}">{{ u.display_name }}（{{ u.username }}）{% if u.couple_id %} · 已绑定{% endif %}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-primary" type="submit">生成</button>
+      </form>
+
+      <div class="table-wrap" style="border:none">
+        <table class="data">
+          <thead><tr><th>握手码</th><th>状态</th><th>过期时间</th></tr></thead>
+          <tbody>
+          {% for t in tokens %}
+            <tr>
+              <td><code style="font-size:12.5px">{{ t.token[:20] }}…</code></td>
+              <td>{% if t.used %}<span class="badge">已使用</span>{% elif t.alive %}<span class="badge ok">有效</span>{% else %}<span class="badge err">已过期</span>{% endif %}</td>
+              <td style="font-size:12.5px;color:var(--lyf-text-muted)">{{ t.expires_at | fmt_date('%m-%d %H:%M') if t.expires_at else '—' }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="3" style="color:var(--lyf-text-muted);text-align:center;padding:24px">还没有生成过</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="empty-state">
+    <span class="icon">💞</span>
+    <p>还没有建立情侣关系。</p>
+    <p style="font-size:14px">在上面选择一个账号生成握手码，把码交给 TA，TA 在自己的站点输入即可绑定。</p>
+  </div>
+  <div class="panel" style="max-width:520px;margin:0 auto">
+    <h3>生成第一个握手码</h3>
+    <form method="post" action="{{ url_for('admin.create_token') }}" style="display:flex;gap:10px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <select class="input" name="user_id">
+        {% for u in users %}<option value="{{ u.id }}">{{ u.display_name }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-primary" type="submit">生成</button>
+    </form>
+  </div>
+{% endif %}
+
+<div class="panel" style="margin-top:22px;border-left:4px solid var(--lyf-primary)">
+  <h3>为什么后台没有「解绑」按钮？</h3>
+  <p style="font-size:14px;color:var(--lyf-text-muted);margin:0">
+    这是这个项目的核心设定：情侣关系一旦双方确认就永久锁定，不可解除、不可更换。
+    规则写在 <code>app/services/couple_service.py</code> 里，服务层直接拒绝任何解绑请求，
+    后台只是没有把它暴露出来而已 —— 就算直接调 API 也会被拒。
+  </p>
+</div>
+{% endblock %}

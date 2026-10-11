@@ -1,0 +1,51 @@
+{% extends "admin/base.html" %}
+{% block title %}相册管理{% endblock %}
+{% block content %}
+<div class="admin-head"><h1>相册管理</h1></div>
+
+<div class="admin-grid cols-2" style="align-items:start">
+  <div class="panel">
+    <h3>＋ 新建相册</h3>
+    <form method="post" action="{{ url_for('admin.album_new') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row"><label>相册名</label><input class="input" name="title" required></div>
+      <div class="form-row"><label>描述</label><input class="input" name="description"></div>
+      <div class="form-grid">
+        <div class="form-row"><label>地点</label><input class="input" name="location"></div>
+        <div class="form-row"><label>拍摄日期</label><input class="input" type="date" name="taken_on"></div>
+      </div>
+      <div class="form-row"><label>封面地址</label><input class="input" name="cover" id="albumCover"></div>
+      <div class="upload-box" data-upload data-category="covers" data-callback="setAlbumCover">点击上传封面</div>
+      <div class="form-row" style="margin-top:14px">
+        <label class="checkbox-row"><input type="checkbox" name="is_public" checked> 公开可见</label>
+      </div>
+      <button class="btn btn-primary" type="submit">创建相册</button>
+    </form>
+  </div>
+
+  <div class="admin-grid cols-2">
+    {% for album in albums %}
+      <div class="post-card">
+        <div class="album-cover" {% if album.display_cover %}style="background-image:url('{{ album.display_cover }}')"{% endif %}>
+          {% if not album.display_cover %}<span class="album-placeholder">📷</span>{% endif %}
+        </div>
+        <div class="card-body">
+          <h3 class="card-title" style="font-size:16px">
+            <a href="{{ url_for('admin.album_detail', album_id=album.id) }}">{{ album.title }}</a>
+          </h3>
+          <div class="card-foot">
+            <span>{{ album.photo_count }} 张</span>
+            {% if not album.is_public %}<span class="badge warn">私密</span>{% endif %}
+            <a class="btn btn-ghost btn-sm" style="margin-left:auto" href="{{ url_for('admin.album_detail', album_id=album.id) }}">管理</a>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state"><span class="icon">🖼</span>还没有相册</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>function setAlbumCover(url){document.getElementById('albumCover').value=url;}</script>
+{% endblock %}

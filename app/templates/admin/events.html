@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+{% block title %}时间线{% endblock %}
+{% block content %}
+<div class="admin-head"><h1>📅 我们的时间线</h1></div>
+<div class="admin-grid cols-2" style="align-items:start">
+  <div class="panel">
+    <h3>＋ 添加事件</h3>
+    <form method="post" action="{{ url_for('admin.event_new') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row"><label>事件</label><input class="input" name="title" required placeholder="比如：第一次一起看海"></div>
+      <div class="form-row"><label>细节</label><textarea class="textarea" name="detail"></textarea></div>
+      <div class="form-grid">
+        <div class="form-row"><label>日期</label><input class="input" type="date" name="happened_on"></div>
+        <div class="form-row"><label>地点</label><input class="input" name="location"></div>
+      </div>
+      <div class="form-row">
+        <label>类型</label>
+        <select class="input" name="kind">
+          <option value="milestone">里程碑</option>
+          <option value="anniversary">纪念</option>
+          <option value="trip">旅行</option>
+          <option value="daily">日常</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">添加</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h3>时间线（{{ events | length }} 条）</h3>
+    <div class="timeline">
+      {% for ev in events %}
+        <div class="timeline-item">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="flex:1">
+              <h4>{{ ev.title }}</h4>
+              <time>{{ ev.happened_on | fmt_date }}{% if ev.location %} · {{ ev.location }}{% endif %}</time>
+              {% if ev.detail %}<p>{{ ev.detail }}</p>{% endif %}
+            </div>
+            <form method="post" action="{{ url_for('admin.event_delete', event_id=ev.id) }}" onsubmit="return confirm('删除？')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-danger btn-sm" type="submit">删除</button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty-state"><span class="icon">📅</span>还没有事件</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

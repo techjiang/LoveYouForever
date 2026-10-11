@@ -1,0 +1,8 @@
+<div class="widget-posts">
+  {% for post in posts %}
+    <a class="widget-post" href="{{ url_for('blog.post_detail', slug=post.slug) }}">
+      <span class="wp-title">{{ post.title }}</span>
+      <span class="wp-date">{{ post.published_at | fmt_date('%m-%d') }}</span>
+    </a>
+  {% endfor %}
+</div>

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block body_class %}page-index{% endblock %}
+{% block content %}
+
+{% set show_days = site.days_together and site.days_together > 0 %}
+<section class="hero">
+  {% if site.hero_image %}<img class="hero-image" src="{{ site.hero_image }}" alt="">{% endif %}
+  <div class="container hero-inner">
+    {% if show_days %}
+      <div class="days-counter">
+        <strong>{{ site.days_together }}</strong><span>天，我们在一起</span>
+      </div>
+    {% endif %}
+    <h1>{{ site.hero_title }}</h1>
+    <p>{{ site.hero_subtitle }}</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary btn-lg" href="{{ url_for('blog.post_list') }}">开始读我们的故事</a>
+      <a class="btn btn-ghost btn-lg" href="{{ url_for('moment.index') }}">看看最近在想什么</a>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+  <div class="stat-strip">
+    <div class="stat-card"><strong>{{ stats.posts }}</strong><span>篇文章</span></div>
+    <div class="stat-card"><strong>{{ stats.categories }}</strong><span>个分类</span></div>
+    <div class="stat-card"><strong>{{ site.days_together or 0 }}</strong><span>天相伴</span></div>
+    <div class="stat-card"><strong>{{ site.couple_name }}</strong><span>我们的小站</span></div>
+  </div>
+</div>
+
+{% if pinned %}
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <h2>置顶推荐</h2>
+      <a class="more" href="{{ url_for('blog.post_list') }}">全部文章 →</a>
+    </div>
+    <div class="post-grid">
+      {% for post in pinned %}{% include "partials/_card.html" %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section" style="padding-top:20px">
+  <div class="container">
+    <div class="section-head">
+      <h2>最近写的</h2>
+      <a class="more" href="{{ url_for('blog.archive') }}">按时间看 →</a>
+    </div>
+    {% if posts %}
+      <div class="post-grid">
+        {% for post in posts %}{% include "partials/_card.html" %}{% endfor %}
+      </div>
+      {% set pagination = pagination %}{% include "partials/_pagination.html" %}
+    {% else %}
+      <div class="empty-state">
+        <span class="icon">📝</span>
+        <p>还没有文章。登录后可以在后台写下第一篇。</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% if moments %}
+<section class="section" style="background:var(--lyf-surface-alt);border-top:1px solid var(--lyf-border);border-bottom:1px solid var(--lyf-border)">
+  <div class="container">
+    <div class="section-head">
+      <h2>最近在想什么</h2>
+      <a class="more" href="{{ url_for('moment.index') }}">全部瞬间 →</a>
+    </div>
+    <div class="moment-stream">
+      {% set liked_ids = liked_ids if liked_ids is defined else [] %}
+      {% for moment in moments %}{% include "partials/_moment_card.html" %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+  <div class="container">
+    <div class="section-head"><h2>按分类找</h2></div>
+    <div class="cat-grid">
+      {% for cat in site.categories %}
+        <a class="cat-card" href="{{ url_for('blog.category', slug=cat.slug) }}">
+          <span class="cat-icon">{{ cat.icon or '📁' }}</span>
+          <strong>{{ cat.name }}</strong>
+          <p>{{ cat.description or '看看这里写了什么' }}</p>
+          <span class="cat-count">{{ cat.post_count }} 篇</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% endblock %}

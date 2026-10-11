@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}500 · {{ site.name }}{% endblock %}
+{% block content %}
+<section class="section" style="padding:100px 0">
+  <div class="container empty-state">
+    <span class="icon" style="font-size:70px">💥</span>
+    <h1 style="font-size:44px;margin:10px 0">500</h1>
+    <p style="font-size:16px">服务器打了个喷嚏</p>
+    <a class="btn btn-primary" href="{{ url_for('blog.index') }}" style="margin-top:20px">回到首页</a>
+  </div>
+</section>
+{% endblock %}

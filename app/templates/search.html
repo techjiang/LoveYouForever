@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}搜索 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>搜索</h1>
+    <form action="{{ url_for('blog.search') }}" method="get" style="display:flex;gap:10px;max-width:520px;margin-top:14px">
+      <input class="input" type="search" name="q" value="{{ keyword }}" placeholder="想找什么？" autofocus>
+      <button class="btn btn-primary" type="submit">搜索</button>
+    </form>
+  </div>
+</div>
+<section class="section">
+  <div class="container">
+    {% if keyword %}
+      <p style="color:var(--lyf-text-muted)">找到 {{ posts | length }} 篇和「{{ keyword }}」相关的文章</p>
+      {% if posts %}
+        <div class="post-grid">{% for post in posts %}{% include "partials/_card.html" %}{% endfor %}</div>
+      {% else %}
+        <div class="empty-state"><span class="icon">🤔</span><p>没有找到相关文章，换个词试试？</p></div>
+      {% endif %}
+    {% else %}
+      <div class="empty-state"><span class="icon">🔍</span><p>输入关键词开始搜索</p></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

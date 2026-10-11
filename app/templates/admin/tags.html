@@ -1,0 +1,30 @@
+{% extends "admin/base.html" %}
+{% block title %}标签管理{% endblock %}
+{% block content %}
+<div class="admin-head"><h1>标签管理 · {{ tags | length }} 个</h1></div>
+<div class="admin-grid cols-2" style="align-items:start">
+  <div class="panel">
+    <h3>＋ 新增标签</h3>
+    <form method="post" style="display:flex;gap:10px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input class="input" name="name" placeholder="标签名" required>
+      <button class="btn btn-primary" type="submit">添加</button>
+    </form>
+  </div>
+  <div class="panel">
+    <h3>全部标签</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      {% for tag in tags %}
+        <span class="chip" style="padding:8px 14px">
+          #{{ tag.name }}
+          <span class="badge" style="margin-left:4px">{{ tag.post_count }}</span>
+          <form method="post" action="{{ url_for('admin.tag_delete', tag_id=tag.id) }}" style="display:inline" onsubmit="return confirm('删除标签 #{{ tag.name }}？')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" style="border:none;background:none;color:#e5544b;cursor:pointer;margin-left:4px">✕</button>
+          </form>
+        </span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

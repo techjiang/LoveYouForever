@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}我们 · {{ site.name }}{% endblock %}
+{% block content %}
+<section class="couple-hero">
+  <div class="container">
+    <h1>{{ couple.name }}</h1>
+    <p class="slogan">{{ couple.slogan }}</p>
+
+    <div class="couple-members">
+      {% for m in couple.members %}
+        <div class="couple-member">
+          {% if m.avatar %}
+            <img class="avatar-lg" src="{{ m.avatar }}" alt="">
+          {% else %}
+            <span class="avatar-lg">{{ m.display_name[0] }}</span>
+          {% endif %}
+          <strong>{{ m.display_name }}</strong>
+          {% if m.role_text %}<span class="role">{{ m.role_text }}</span>{% endif %}
+        </div>
+        {% if not loop.last %}<span class="couple-link">❤</span>{% endif %}
+      {% endfor %}
+    </div>
+
+    <div style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;margin-top:20px;font-size:14px;opacity:.95">
+      <span>已相爱 <strong style="font-size:20px">{{ stats.days }}</strong> 天</span>
+      <span>共同写下 <strong style="font-size:20px">{{ stats.posts }}</strong> 篇文章</span>
+      <span>发布 <strong style="font-size:20px">{{ stats.moments }}</strong> 条瞬间</span>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    {% if tampered %}
+      <div class="panel" style="border-color:#e5544b;background:#fdeaea;margin-bottom:22px">
+        <strong style="color:#c0392b">⚠️ 检测到关系数据被外部修改</strong>
+      </div>
+    {% endif %}
+
+    {% if couple.sealed %}
+      <div class="seal-banner" style="margin-bottom:36px">
+        <h2>🔒 已永久封存</h2>
+        <p>封存于 {{ couple.sealed_at | fmt_date('%Y-%m-%d %H:%M') }}。这段关系已经写进了数据库的骨头里，不可解除、不可更换。</p>
+        <p style="margin-top:10px;font-size:13px">指纹：<code>{{ couple.seal_hash[:24] }}…</code></p>
+      </div>
+    {% endif %}
+
+    <div class="layout-2col">
+      <div>
+        <div class="section-head">
+          <h2>我们的时间线</h2>
+        </div>
+        <div class="panel">
+          {% if events %}
+            <div class="timeline">
+              {% for ev in events %}
+                <div class="timeline-item">
+                  <h4>{{ ev.title }}{% if ev.kind == 'milestone' %} ⭐{% endif %}</h4>
+                  <time>{{ ev.happened_on | fmt_date }}{% if ev.location %} · {{ ev.location }}{% endif %}</time>
+                  {% if ev.detail %}<p>{{ ev.detail }}</p>{% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p style="color:var(--lyf-text-muted)">还没有记录，添加第一个日子吧。</p>
+          {% endif %}
+
+          <form method="post" action="{{ url_for('couple.new_event') }}" style="margin-top:20px;border-top:1px solid var(--lyf-border);padding-top:18px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-grid">
+              <div class="form-row"><label>记一件事</label><input class="input" name="title" required placeholder="第一次一起旅行"></div>
+              <div class="form-row"><label>日期</label><input class="input" type="date" name="happened_on"></div>
+              <div class="form-row"><label>地点</label><input class="input" name="location"></div>
+              <div class="form-row">
+                <label>类型</label>
+                <select class="input" name="kind">
+                  <option value="daily">日常</option>
+                  <option value="milestone">里程碑</option>
+                  <option value="trip">旅行</option>
+                  <option value="anniversary">纪念</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row"><label>细节</label><textarea class="textarea" name="detail" style="min-height:70px"></textarea></div>
+            <button class="btn btn-primary btn-sm" type="submit">添加</button>
+          </form>
+        </div>
+
+        <div class="section-head" style="margin-top:36px">
+          <h2>我们的约定</h2>
+        </div>
+        {% for vow in vows %}
+          <div class="vow-card {{ 'effective' if vow.is_effective }}">
+            <div class="vow-head">
+              <h4>{{ vow.title }}</h4>
+              <span class="badge {{ 'ok' if vow.is_effective else 'warn' }}">
+                {{ '已生效' if vow.is_effective else '待签署' }} · {{ vow.progress }}
+              </span>
+            </div>
+            <div class="vow-body">{{ vow.content }}</div>
+            <div class="vow-signs">
+              {% for m in couple.members %}
+                {% set signed = (m.id == couple.user_a_id and vow.signed_a) or (m.id == couple.user_b_id and vow.signed_b) %}
+                <span class="sign-badge {{ 'signed' if signed }}">{{ m.display_name }} {{ '✓' if signed else '○' }}</span>
+              {% endfor %}
+              {% set me_signed = (current_user.id == couple.user_a_id and vow.signed_a) or (current_user.id == couple.user_b_id and vow.signed_b) %}
+              {% if not me_signed %}
+                <form method="post" action="{{ url_for('couple.sign_vow', vow_id=vow.id) }}" style="margin-left:auto">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-primary btn-sm" type="submit">✍️ 我来签</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="panel"><p style="color:var(--lyf-text-muted);margin:0">还没有约定。</p></div>
+        {% endfor %}
+
+        <div class="panel">
+          <h3>＋ 写一条新约定</h3>
+          <form method="post" action="{{ url_for('couple.new_vow') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-row"><label>约定</label><input class="input" name="title" required placeholder="比如：每年至少一起旅行一次"></div>
+            <div class="form-row"><label>具体内容</label><textarea class="textarea" name="content" style="min-height:80px"></textarea></div>
+            <div class="form-row">
+              <label>类型</label>
+              <select class="input" name="kind">
+                <option value="promise">承诺</option>
+                <option value="rule">约法</option>
+                <option value="wish">愿望</option>
+                <option value="contract">契约</option>
+              </select>
+            </div>
+            <div class="form-row"><label class="checkbox-row"><input type="checkbox" name="require_both" checked> 需要双方签名才生效</label></div>
+            <button class="btn btn-primary" type="submit">创建约定</button>
+          </form>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="panel">
+          <h3>💞 我们的资料</h3>
+          <form method="post" action="{{ url_for('couple.update_settings') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-row"><label>关系名称</label><input class="input" name="name" value="{{ couple.name }}"></div>
+            <div class="form-row"><label>宣言</label><input class="input" name="slogan" value="{{ couple.slogan }}"></div>
+            <div class="form-row">
+              <label>纪念日</label>
+              <input class="input" type="date" name="anniversary" value="{{ couple.anniversary.isoformat() if couple.anniversary else '' }}">
+            </div>
+            <div class="form-row"><label>备注</label><textarea class="textarea" name="note" style="min-height:70px">{{ couple.note }}</textarea></div>
+            <button class="btn btn-ghost btn-sm" type="submit" style="width:100%">保存</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>🔀 内容合并</h3>
+          <p style="font-size:14px;color:var(--lyf-text-muted)">把两个人的文章聚在一个地方看。</p>
+          <a class="btn btn-primary btn-sm" href="{{ url_for('couple.merged') }}" style="width:100%">查看合并内容</a>
+        </div>
+
+        <div class="panel">
+          <h3>📊 数据</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px">
+            <div><div class="label" style="color:var(--lyf-text-muted);font-size:12.5px">文章</div><strong>{{ stats.posts }}</strong></div>
+            <div><div class="label" style="color:var(--lyf-text-muted);font-size:12.5px">瞬间</div><strong>{{ stats.moments }}</strong></div>
+            <div><div class="label" style="color:var(--lyf-text-muted);font-size:12.5px">照片</div><strong>{{ stats.photos }}</strong></div>
+            <div><div class="label" style="color:var(--lyf-text-muted);font-size:12.5px">约定</div><strong>{{ stats.vows }}</strong></div>
+          </div>
+        </div>
+
+        {% if not couple.sealed and couple.is_complete %}
+        <div class="panel" style="border-color:var(--lyf-primary)">
+          <h3>🔒 永封这段关系</h3>
+          <p style="font-size:13.5px;color:var(--lyf-text-muted)">
+            永封之后，任何界面都不会再有修改成员的可能，数据库会写入不可逆指纹。
+            这是最后一次「升级」的机会 —— 从那以后，只有永远。
+          </p>
+          <form method="post" action="{{ url_for('couple.seal') }}" onsubmit="return confirm('确定要永封吗？此操作不可撤销。')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input class="input" name="confirm" placeholder='输入「我确定」' required style="margin-bottom:10px">
+            <button class="btn btn-danger" type="submit" style="width:100%">永封</button>
+          </form>
+        </div>
+        {% endif %}
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}

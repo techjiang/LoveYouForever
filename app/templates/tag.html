@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}#{{ tag.name }} · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>#{{ tag.name }}</h1>
+    <p>带这个标签的文章 · 共 {{ pagination.total }} 篇</p>
+  </div>
+</div>
+<section class="section">
+  <div class="container">
+    {% if posts %}
+      <div class="post-grid">{% for post in posts %}{% include "partials/_card.html" %}{% endfor %}</div>
+      {% include "partials/_pagination.html" %}
+    {% else %}
+      <div class="empty-state"><span class="icon">🏷</span><p>这个标签下还没有文章</p></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

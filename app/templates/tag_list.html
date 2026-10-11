@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}标签云 · {{ site.name }}{% endblock %}
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <h1>标签云</h1>
+    <p>共 {{ tags | length }} 个标签</p>
+  </div>
+</div>
+<section class="section">
+  <div class="container">
+    <div class="tag-cloud">
+      {% for tag in tags %}
+        <a href="{{ url_for('blog.tag', slug=tag.slug) }}">
+          #{{ tag.name }}<span class="n">{{ tag.post_count }}</span>
+        </a>
+      {% else %}
+        <div class="empty-state"><span class="icon">🏷</span>还没有标签</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}
