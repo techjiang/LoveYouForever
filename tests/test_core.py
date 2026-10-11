@@ -581,3 +581,238 @@ def test_wish_api_shape(app, client):
     assert data["has_wish"] is True
     assert data["content"] == "今天也想你"
     assert data["mood_label"] == "想你"
+
+
+# ------------------------------------------------------------------- 双站互连
+def test_peer_disconnected_by_default(app, client):
+    """两台机器不是天生就通的，得自己去连。"""
+    from app.services import peer_service
+
+    with app.app_context():
+        s = peer_service.summary()
+        assert s["connected"] is False
+        assert s["conn"] is None
+        assert s["total"] == 0
+
+    html = client.get("/").get_data(as_text=True)
+    assert "TA 那边的动静" not in html
+
+
+def test_peer_rejects_self_and_empty(app):
+    """填自己的地址或者什么都不填，都应该被挡下来。"""
+    from app.extensions import db
+    from app.models import SiteSetting
+    from app.services import peer_service
+    from app.services.peer_service import PeerError
+
+    with app.app_context():
+        SiteSetting.set("site_url", "https://mine.example.com")
+        db.session.commit()
+        with pytest.raises(PeerError):
+            peer_service.connect("")
+        with pytest.raises(PeerError):
+            peer_service.connect("https://mine.example.com")
+
+
+def test_peer_reports_unreachable(app):
+    """连不上的地址要给一句人话，而不是抛异常出来。"""
+    from app.services import peer_service
+
+    with app.app_context():
+        info = peer_service.fetch_peer("http://127.0.0.1:9")
+        assert info["ok"] is False
+        assert info["message"]
+
+
+def test_peer_demo_shows_up_but_only_when_connected(app, client):
+    """演示互连的内容，只在「连着」的时候出现在首页。"""
+    from app.services import peer_service
+
+    with app.app_context():
+        peer_service.seed_demo_peer()
+
+    html = client.get("/").get_data(as_text=True)
+    assert "TA 那边的动静" in html
+
+    with app.app_context():
+        peer_service.disconnect()
+    html = client.get("/").get_data(as_text=True)
+    assert "TA 那边的动静" not in html
+
+
+def test_peer_disconnect_does_not_touch_relationship(app):
+    """断开互连 ≠ 解绑。这是最容易被人误解的一条，必须锁死。"""
+    from app.extensions import db
+    from app.models import Couple, PeerConnection, User
+    from app.services import couple_service, peer_service
+
+    with app.app_context():
+        a = User(username="lover_a", nickname="阿江")
+        a.set_password("pass1234")
+        b = User(username="lover_b", nickname="小酱")
+        b.set_password("pass1234")
+        db.session.add_all([a, b])
+        db.session.commit()
+
+        token = couple_service.create_bind_token(a)
+        couple = couple_service.accept_bind_token(b, token.token)
+        assert couple.is_complete
+
+        peer_service.seed_demo_peer()
+        peer_service.disconnect()
+
+        still = db.session.get(Couple, couple.id)
+        assert still is not None
+        assert still.user_a_id == a.id and still.user_b_id == b.id
+        assert a.can_bind() is False, "断开互连之后也不该能重新绑定"
+
+
+def test_peer_mirror_never_duplicates(app):
+    """同一条内容同步多少次都只留一行。"""
+    from app.services import peer_service
+
+    with app.app_context():
+        peer_service.seed_demo_peer()
+        first = peer_service.summary()["total"]
+        peer_service.seed_demo_peer()
+        assert peer_service.summary()["total"] == first
+
+
+def test_peer_image_blocks_path_traversal(app, client):
+    """图片代理只认缓存文件名，别被人拿来读服务器上的文件。"""
+    for bad in ("../../etc/passwd", "..%2f..%2fetc%2fpasswd", "secret.txt", "abc.png"):
+        assert client.get(f"/couple/images/{bad}").status_code == 404
+
+
+def test_peer_api_needs_token_when_configured(app, client):
+    """配了令牌之后，外人拉不走内容。"""
+    from app.services import peer_service
+
+    with app.app_context():
+        token = peer_service.summary()["my_token"]
+
+    ok = client.get("/couple/peer/moments", headers={"X-LYF-Peer": token})
+    assert ok.status_code == 200
+    assert ok.get_json()["ok"] is True
+
+    bad = client.get("/couple/peer/moments", headers={"X-LYF-Peer": "wrong-token"})
+    assert bad.status_code == 403
+
+
+def test_peer_api_hides_private_moments(app, client):
+    """互连接口不能把私密瞬间漏出去。"""
+    from app.extensions import db
+    from app.models import Couple, Moment, User
+    from app.services import peer_service
+
+    with app.app_context():
+        u = User.query.first()
+        c = Couple(name="我们", user_a_id=u.id, user_b_id=u.id)
+        db.session.add(c)
+        db.session.commit()
+        db.session.add(Moment(content="公开的瞬间", author_id=u.id, is_public=True))
+        db.session.add(Moment(content="只给自己看的", author_id=u.id, is_public=False))
+        db.session.commit()
+        rows = peer_service.outgoing_moments()
+        texts = [r["content"] for r in rows]
+        assert "公开的瞬间" in texts
+        assert "只给自己看的" not in texts
+
+
+def test_peer_admin_requires_admin(client):
+    r = client.get("/admin/peer")
+    assert r.status_code in (302, 401, 403)
+
+
+def test_peer_admin_page_renders(app, client):
+    from app.services import peer_service
+
+    with app.app_context():
+        peer_service.seed_demo_peer()
+
+    client.post("/auth/login", data={"username": "admin", "password": "loveyou"})
+    r = client.get("/admin/peer")
+    assert r.status_code == 200
+    assert "双站互连" in r.get_data(as_text=True)
+
+
+# ------------------------------------------------------------------- 演示数据
+def test_seed_is_incremental_not_all_or_nothing(app):
+    """seed 必须是补全：bootstrap 已经建过分类/页面，也不该因此写不进演示内容。"""
+    from app.utils.seed import seed_demo
+
+    with app.app_context():
+        from app.models import Category, CustomPage, Post
+
+        # bootstrap 建的默认分类和页面先躺在那儿 —— 早先的实现就是被它们挡住的
+        assert Category.query.count() > 0
+        assert CustomPage.query.count() == 0
+
+        first = seed_demo()
+        assert first["posts"] > 0
+        assert Post.query.count() == first["posts"]
+
+        second = seed_demo()
+        assert sum(second.values()) == 0, "第二遍不该再写一遍"
+        assert Post.query.count() == first["posts"]
+
+
+def test_seed_keeps_writing_missing_pieces(app):
+    """分类被清掉一部分之后，seed 应该把缺的补回来，而不是整块跳过。"""
+    from app.utils.seed import seed_demo
+
+    with app.app_context():
+        from app.extensions import db
+        from app.models import CustomPage, Photo
+
+        seed_demo()
+        before = Photo.query.count()
+        CustomPage.query.delete()
+        db.session.commit()
+
+        stats = seed_demo()
+        assert stats["pages"] == 1
+        assert Photo.query.count() == before, "已有的照片不该被删掉或重写"
+
+
+# ------------------------------------------------------------------- 邮件提醒
+def test_mail_silent_without_smtp(app):
+    """没配 SMTP 就什么都不做 —— 提醒失败不该影响站点。"""
+    from app.models import Couple, User
+    from app.services import mail_service
+
+    with app.app_context():
+        assert mail_service.is_configured() is False
+        assert mail_service.maybe_send_daily(None) is False
+        u = User.query.first()
+        c = Couple(name="我们", user_a_id=u.id, user_b_id=u.id)
+        assert mail_service.send("someone@example.com", "标题", "正文") is False
+
+
+def test_mail_digest_lists_due_items(app):
+    """今天/明天的日子要出现在提醒里。"""
+    from datetime import timedelta
+
+    from app.extensions import db
+    from app.models import Couple, User
+    from app.services import anniversary_service, mail_service
+    from app.models.mixins import utcnow
+
+    with app.app_context():
+        u = User.query.first()
+        c = Couple(name="我们", user_a_id=u.id, user_b_id=u.id)
+        db.session.add(c)
+        db.session.commit()
+
+        anniversary_service.create(c, "她的生日", (utcnow() + timedelta(days=2)).date(), kind="birthday")
+        anniversary_service.create(c, "明年的事", (utcnow() + timedelta(days=200)).date())
+
+        items = mail_service.due_items(c)
+        titles = [a.title for a in items]
+        assert "她的生日" in titles
+        assert "明年的事" not in titles
+
+        subject, body, html = mail_service.build_digest(c, items)
+        assert "她的生日" in subject
+        assert "她的生日" in body
+        assert "LoveYouForever" in html

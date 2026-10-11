@@ -8,6 +8,7 @@ from app.models.anniversary import Anniversary, KINDS as ANNIVERSARY_KINDS
 from app.models.misc import FriendLink, PluginRecord, BackupRecord
 from app.models.note import Note
 from app.models.wish import DailyWish, MOODS as WISH_MOODS
+from app.models.peer import PeerConnection, MirrorEntry
 
 __all__ = [
     "User", "SiteSetting",
@@ -18,4 +19,5 @@ __all__ = [
     "FriendLink", "PluginRecord", "BackupRecord",
     "Note", "DailyWish", "WISH_MOODS",
     "Anniversary", "ANNIVERSARY_KINDS",
+    "PeerConnection", "MirrorEntry",
 ]

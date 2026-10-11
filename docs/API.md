@@ -177,3 +177,50 @@
 ```
 
 只返回公开的寄语。隐藏的那些不会出现在这里 —— 既然藏了，就不该从接口漏出去。
+
+## 双站互连
+
+两台机器互相拉内容。除了 `GET /couple/api/info`（公开），其余都建议带上
+`X-LYF-Peer: <互连令牌>` 头 —— 令牌在后台「双站互连」页能看到。
+
+### `GET /couple/peer/moments`
+
+本机的公开瞬间。`?limit=20`（上限 50）。
+
+```json
+{"ok": true, "rows": [
+  {"id": 1, "content": "今天也想你", "images": [], "mood": "🌙",
+   "author": "小可爱", "created_at": "2026-10-11T08:17:51"}
+]}
+```
+
+只出 `is_public=True` 的。隐藏的瞬间一条都不会出现。
+
+### `GET /couple/peer/posts`
+
+已发布的文章。
+
+```json
+{"ok": true, "rows": [
+  {"id": 1, "title": "我们的第一个春天", "slug": "我们的第一个春天",
+   "summary": "……", "author": "站长", "published_at": "2026-10-11T08:17:51",
+   "url": "/post/我们的第一个春天"}
+]}
+```
+
+### `GET /couple/peer/vows`
+
+本机的约定。
+
+### `GET /couple/peer/anniversaries`
+
+本机记着的日子，带 `days_left`。
+
+### `GET /couple/images/<name>`
+
+对方站图片的本机缓存。`name` 是 32 位十六进制 + 扩展名，
+由 `peer_service.fetch_image` 生成。其它形状一律 404。
+
+### 握手接口
+
+对方站点用 `POST /couple/api/handshake` 校验握手码，见上一节。

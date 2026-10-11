@@ -169,6 +169,51 @@ sudo systemctl enable --now loveyouforever
 
 ---
 
+## 两台机器互相连
+
+如果你们两个人各自部署了一套，想让对方的内容出现在自己站上：
+
+1. 两边都完成情侣绑定
+2. 两边都在「站点设置 → 基本信息」里把**站点地址**填成真实地址
+3. 任意一边：后台「双站互连」→ 填对方地址 → 连接 → 立刻同步
+
+细节见 [PEER.md](PEER.md)。一句话记住：**断开互连不会解开关系**。
+
+不想开两台机器也能先看效果：
+
+```bash
+flask --app wsgi:app seed --with-partner
+flask --app wsgi:app peer-demo
+```
+
+---
+
+## 纪念日邮件提醒（可选）
+
+快到了的日子可以发一封信。不配也能用，只是不会发信。
+
+在 `instance/config.json` 里加上：
+
+```json
+{
+  "mail_server": "smtp.qq.com",
+  "mail_port": "465",
+  "mail_username": "you@qq.com",
+  "mail_password": "授权码",
+  "mail_to": "you@qq.com,ta@example.com"
+}
+```
+
+然后挂进 crontab：
+
+```cron
+0 9 * * * cd /path/to/LoveYouForever && .venv/bin/flask --app wsgi:app remind
+```
+
+不挂也行 —— 谁访问前台就顺手判断一次，每天最多发一封。
+
+---
+
 ## 自动备份
 
 ```cron

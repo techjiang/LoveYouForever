@@ -1,11 +1,11 @@
-"""情侣绑定、「永远爱你」、约定、时间线。"""
+"""情侣绑定、「永远爱你」、约定、时间线，以及双站互连的对外接口。"""
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.models import Couple, CoupleEvent, SiteSetting, User, Vow, WISH_MOODS
+from app.models import BindToken, Couple, CoupleEvent, User, Vow, WISH_MOODS
 from app.models.mixins import utcnow
-from app.services import couple_service, site_service
+from app.services import couple_service, peer_service, site_service
 from app.services.couple_service import CoupleError
 
 couple_bp = Blueprint("couple", __name__, url_prefix="/couple")
@@ -30,6 +30,7 @@ def home():
 
     from app.services import wish_service
 
+    peer = peer_service.summary()
     return render_template(
         "couple/home.html",
         couple=couple,
@@ -41,6 +42,11 @@ def home():
         anniversary_humanize=anniversary_service.humanize,
         wishes=wish_service.recent(10),
         wish_moods=WISH_MOODS,
+        peer=peer,
+        peer_conn=peer["conn"],
+        peer_timeline=peer_service.mirror_moments(6),
+        peer_anniversaries=peer_service.mirror_anniversaries(),
+        peer_vows=peer_service.mirror_vows(),
     )
 
 
@@ -113,17 +119,11 @@ def bind():
         return redirect(url_for("couple.home"))
     tokens = []
     if current_user.can_bind():
-        try:
-            tokens = [
-                t
-                for t in __import__("app.models", fromlist=["BindToken"]).BindToken.query.filter_by(
-                    issuer_id=current_user.id, used=False
-                ).order_by(
-                    __import__("app.models", fromlist=["BindToken"]).BindToken.created_at.desc()
-                )
-            ]
-        except Exception:
-            tokens = []
+        tokens = (
+            BindToken.query.filter_by(issuer_id=current_user.id, used=False)
+            .order_by(BindToken.created_at.desc())
+            .all()
+        )
     return render_template("couple/bind.html", tokens=tokens)
 
 
@@ -145,7 +145,7 @@ def accept_token():
     raw = (request.form.get("token") or "").strip()
     partner_site = (request.form.get("partner_site") or "").strip()
     try:
-        couple = couple_service.accept_bind_token(current_user, raw, partner_site)
+        couple_service.accept_bind_token(current_user, raw, partner_site)
         flash("绑定成功！从这一刻起，我们写进同一段时光。", "success")
         return redirect(url_for("couple.home"))
     except CoupleError as exc:
@@ -349,3 +349,68 @@ def api_info():
             "site": site_service.get("site_name", ""),
         }
     )
+
+
+# --------------------------------------------------------------------------
+# 双站互连：本机对外提供的内容接口
+#
+# 只给「关系两边都确认过」的内容：瞬间只出公开的，文章只出已发布的。
+# 私密的东西（隐藏的瞬间/草稿/小纸条）一条都不出。
+# --------------------------------------------------------------------------
+def _peer_token_ok() -> bool:
+    provided = (request.headers.get("X-LYF-Peer") or request.args.get("token") or "").strip()
+    return peer_service._guard_token(provided)
+
+
+def _peer_guard():
+    if not _peer_token_ok():
+        abort(403)
+
+
+@couple_bp.route("/peer/moments")
+def peer_moments():
+    """对方来拉本站的瞬间。"""
+    _peer_guard()
+    limit = min(request.args.get("limit", 20, type=int), 50)
+    return jsonify({"ok": True, "rows": peer_service.outgoing_moments(limit)})
+
+
+@couple_bp.route("/peer/posts")
+def peer_posts():
+    _peer_guard()
+    limit = min(request.args.get("limit", 20, type=int), 50)
+    return jsonify({"ok": True, "rows": peer_service.outgoing_posts(limit)})
+
+
+@couple_bp.route("/peer/vows")
+def peer_vows():
+    _peer_guard()
+    return jsonify({"ok": True, "rows": peer_service.outgoing_vows()})
+
+
+@couple_bp.route("/peer/anniversaries")
+def peer_anniversaries():
+    _peer_guard()
+    return jsonify({"ok": True, "rows": peer_service.outgoing_anniversaries()})
+
+
+@couple_bp.route("/images/<name>")
+def peer_image(name: str):
+    """对方站的图片，从本机转出去。
+
+    name 只允许是 32 位十六进制 + 扩展名 —— 直接拿用户传的路径去读文件
+    就是经典的目录穿越，这里卡死在文件名白名单上。
+    """
+    import re
+    from pathlib import Path
+
+    from flask import current_app, send_from_directory
+
+    if not re.fullmatch(r"[0-9a-f]{32}\.[A-Za-z0-9]{1,5}", name):
+        abort(404)
+    folder = Path(current_app.config["PEER_CACHE_FOLDER"])
+    if not (folder / name).exists():
+        abort(404)
+    resp = send_from_directory(folder, name, max_age=86400)
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp

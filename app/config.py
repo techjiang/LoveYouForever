@@ -55,6 +55,9 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.environ.get("LYF_MAX_UPLOAD_MB", "32")) * 1024 * 1024
     ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "svg", "avif"}
 
+    # 双站互连：对方站点的图片缓存到这里，不直接引用对方域名
+    PEER_CACHE_FOLDER = str(BASE_DIR / "instance" / "peer_cache")
+
     # 备份
     BACKUP_FOLDER = str(BASE_DIR / "backups")
     BACKUP_KEEP = int(os.environ.get("LYF_BACKUP_KEEP", "30"))
@@ -65,6 +68,15 @@ class Config:
 
     # 默认语言/时区
     TIMEZONE = os.environ.get("LYF_TIMEZONE", "Asia/Shanghai")
+
+    # 邮件提醒（可选）。不填就只记录不发送，站点照常跑。
+    MAIL_SERVER = os.environ.get("LYF_MAIL_SERVER", file_config.get("mail_server", ""))
+    MAIL_PORT = int(os.environ.get("LYF_MAIL_PORT", "465"))
+    MAIL_USERNAME = os.environ.get("LYF_MAIL_USERNAME", file_config.get("mail_username", ""))
+    MAIL_PASSWORD = os.environ.get("LYF_MAIL_PASSWORD", file_config.get("mail_password", ""))
+    MAIL_USE_SSL = os.environ.get("LYF_MAIL_SSL", "1") not in {"0", "false", "no"}
+    MAIL_SENDER = os.environ.get("LYF_MAIL_SENDER", file_config.get("mail_sender", ""))
+    MAIL_TO = os.environ.get("LYF_MAIL_TO", file_config.get("mail_to", ""))
 
     @classmethod
     def get(cls, key: str, default=None):

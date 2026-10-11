@@ -38,6 +38,7 @@
       <a href="{{ url_for('admin.anniversaries') }}" class="{{ 'active' if request.endpoint == 'admin.anniversaries' }}">💞 纪念日</a>
       <a href="{{ url_for('admin.wishes') }}" class="{{ 'active' if request.endpoint == 'admin.wishes' }}">💬 门口寄语</a>
       <a href="{{ url_for('admin.merged') }}" class="{{ 'active' if request.endpoint == 'admin.merged' }}">🔀 内容合并</a>
+      <a href="{{ url_for('admin.peer') }}" class="{{ 'active' if request.endpoint == 'admin.peer' }}">🔗 双站互连</a>
 
       <span class="group-title">系统</span>
       <a href="{{ url_for('admin.theme') }}" class="{{ 'active' if request.endpoint == 'admin.theme' }}">🎨 主题配色</a>

@@ -1,0 +1,251 @@
+{% extends "admin/base.html" %}
+{% block title %}双站互连{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>🔗 双站互连</h1>
+  <p class="muted" style="margin:4px 0 0;font-size:14px">
+    你们各自跑一套系统，这里可以让对方那台机器上的内容显现在自己站上。
+  </p>
+  <div class="actions">
+    {% if connected %}
+      <form method="post" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="heartbeat">
+        <button class="btn btn-ghost btn-sm" type="submit">探一下对方</button>
+      </form>
+      <form method="post" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="sync">
+        <button class="btn btn-primary btn-sm" type="submit">立刻同步</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if conn %}
+  <div class="admin-grid cols-4" style="margin-bottom:22px">
+    <div class="metric-card">
+      <div class="label">连接状态</div>
+      <div class="value" style="font-size:20px">
+        {{ '已连通' if connected else conn.status_text }}
+      </div>
+    </div>
+    <div class="metric-card"><div class="label">对方</div><div class="value" style="font-size:17px">{{ conn.display_name }}</div></div>
+    <div class="metric-card accent-amber">
+      <div class="label">镜像内容</div>
+      <div class="value">{{ counts.values() | sum }}</div>
+    </div>
+    <div class="metric-card accent-green">
+      <div class="label">最近同步</div>
+      <div class="value" style="font-size:17px">
+        {{ conn.last_sync_at | humanize if conn.last_sync_at else '还没同步过' }}
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-grid cols-2" style="align-items:start;margin-bottom:22px">
+    <div class="panel">
+      <h3>连接详情</h3>
+      <p><strong>对方地址：</strong><code style="font-size:13px">{{ conn.partner_url }}</code></p>
+      <p><strong>对方关系名：</strong>{{ conn.partner_name or '—' }}</p>
+      <p><strong>对方的两个人：</strong>{{ conn.partner_names or '—' }}</p>
+      <p><strong>对方站点：</strong>{{ conn.partner_site or '—' }}
+        {% if conn.partner_sealed %}<span class="badge ok">已永封</span>{% endif %}</p>
+      <p><strong>最近连通：</strong>{{ conn.last_seen_at | fmt_date('%Y-%m-%d %H:%M') if conn.last_seen_at else '—' }}</p>
+      {% if conn.last_error %}
+        <p style="color:#c0392b;font-size:13.5px">上次出错：{{ conn.last_error }}</p>
+      {% endif %}
+
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+        <form method="post" onsubmit="return confirm('断开互连只是不再互看内容，情侣关系不会、也不可能被解开。继续？')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="disconnect">
+          <button class="btn btn-ghost btn-sm" type="submit">断开互连</button>
+        </form>
+        <form method="post" onsubmit="return confirm('清空本机保存的对方内容？对方站点不受影响。')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="clear">
+          <button class="btn btn-danger btn-sm" type="submit">清空镜像内容</button>
+        </form>
+      </div>
+      <p style="font-size:13px;color:var(--lyf-text-muted);margin:14px 0 0">
+        断开互连 ≠ 解绑。关系是关系，互连是互连 —— 前者永远解不开，后者想关就关。
+      </p>
+    </div>
+
+    <div class="panel">
+      <h3>让对方连过来</h3>
+      <p style="font-size:13.5px;color:var(--lyf-text-muted);margin-top:0">
+        把下面两样东西给对方，TA 在后台填上就通了。
+      </p>
+      <div class="form-row">
+        <label>本机站点地址</label>
+        <code style="display:block;padding:10px;background:var(--lyf-surface-alt);border-radius:8px;font-size:13px;overflow-wrap:anywhere">
+          {{ site_url or '还没填 —— 先去「站点设置」把站点地址补上' }}
+        </code>
+      </div>
+      <div class="form-row">
+        <label>互连令牌</label>
+        <code style="display:block;padding:10px;background:var(--lyf-surface-alt);border-radius:8px;font-size:13px;overflow-wrap:anywhere">{{ my_token }}</code>
+        <p class="hint">令牌跟着站点地址和密钥生成。对方带上它来拉内容，别人拉不走。</p>
+      </div>
+      <p style="font-size:13px;color:var(--lyf-text-muted)">
+        只用给关系里的另一半 —— 它挡的是路人，不是恋人。
+      </p>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:22px">
+    <h3>换成别的地址</h3>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="connect">
+      <div class="form-grid">
+        <div class="form-row"><label>对方站点地址</label>
+          <input class="input" name="partner_url" value="{{ conn.partner_url }}" placeholder="https://ta.example.com">
+        </div>
+        <div class="form-row"><label>对方的互连令牌（可选，但建议填）</label>
+          <input class="input" name="partner_token" placeholder="对方后台「双站互连」页里那一串">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" type="submit">重新连接</button>
+    </form>
+  </div>
+
+{% else %}
+  <div class="panel" style="border-left:4px solid var(--lyf-primary)">
+    <h3>还没有互连</h3>
+    <p style="font-size:14px;color:var(--lyf-text-muted)">
+      两台机器各自跑一套「永远爱你」，把地址填进来就能互相看见对方的内容。
+      先做完情侣绑定，再连这个 —— 没绑定的话对方会拒绝。
+    </p>
+  </div>
+
+  <div class="panel" style="max-width:640px;margin-top:22px">
+    <h3>建立互连</h3>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="connect">
+      <div class="form-row"><label>对方站点地址</label>
+        <input class="input" name="partner_url" required placeholder="https://ta.example.com">
+      </div>
+      <div class="form-row"><label>对方的互连令牌（可选）</label>
+        <input class="input" name="partner_token" placeholder="对方后台里那一串">
+        <p class="hint">填上更稳妥：只有拿着令牌的人才拉得走内容。</p>
+      </div>
+      <button class="btn btn-primary" type="submit">连接</button>
+    </form>
+    <p style="font-size:13px;color:var(--lyf-text-muted);margin-top:14px">
+      本机的互连令牌（发给对方）：
+      <code style="display:block;padding:10px;background:var(--lyf-surface-alt);border-radius:8px;margin-top:6px;overflow-wrap:anywhere">{{ my_token }}</code>
+    </p>
+  </div>
+{% endif %}
+
+{% if connected %}
+  <div class="admin-head" style="margin-top:30px">
+    <h2 style="font-size:19px">对方的内容（镜像 {{ counts.values() | sum }} 条）</h2>
+    <p class="muted" style="font-size:13.5px;margin:4px 0 0">
+      这些是对方站点上的东西，在本机只读存储。要改内容请去对方那台机器上改。
+    </p>
+  </div>
+
+  {% if moments %}
+    <div class="panel" style="margin-bottom:18px">
+      <h3>💭 对方的瞬间</h3>
+      <div class="peer-grid">
+        {% for m in moments %}
+          <div class="peer-card">
+            {% if m.image %}<img src="{{ m.image }}" alt="" loading="lazy">{% endif %}
+            <p>{{ m.title or m.summary or '（无文字）' }}</p>
+            <small>{{ m.author or '对方' }} · {{ m.published_at | fmt_date('%m-%d %H:%M') if m.published_at else '' }}</small>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if anniversaries %}
+    <div class="panel" style="margin-bottom:18px">
+      <h3>💞 对方记着的日子</h3>
+      <div class="anniv-list">
+        {% for a in anniversaries %}
+          <div class="anniv-row">
+            <span class="anniv-icon">💞</span>
+            <div class="anniv-row-main">
+              <strong>{{ a.title }}</strong>
+              <small>{{ a.summary or '' }}</small>
+            </div>
+            <div class="anniv-row-side">
+              <small>{{ a.payload.get('anchor_on', '') }}</small>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if vows %}
+    <div class="panel" style="margin-bottom:18px">
+      <h3>🤝 对方的约定</h3>
+      {% for v in vows %}
+        <div style="padding:12px 0;border-bottom:1px solid var(--lyf-border)">
+          <strong>{{ v.title }}</strong>
+          {% if v.payload.get('effective') %}<span class="badge ok">已生效</span>{% endif %}
+          <p style="margin:4px 0 0;font-size:13.5px;color:var(--lyf-text-muted)">{{ v.summary }}</p>
+          <small style="color:var(--lyf-text-muted)">这份约定在对方那台机器上签的，这里只作展示。</small>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if posts %}
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>标题</th><th>作者</th><th>时间</th></tr></thead>
+        <tbody>
+        {% for p in posts %}
+          <tr>
+            <td class="row-title">{{ p.title }}</td>
+            <td>{{ p.author or '—' }}</td>
+            <td style="font-size:13px;color:var(--lyf-text-muted)">
+              {{ p.published_at | fmt_date('%Y-%m-%d') if p.published_at else '—' }}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {% if not moments and not anniversaries and not vows and not posts %}
+    <div class="empty-state"><span class="icon">📦</span><p>还没同步过。点上面的「立刻同步」试试。</p></div>
+  {% endif %}
+{% endif %}
+
+<div class="panel" style="margin-top:26px;border-left:4px solid var(--lyf-primary)">
+  <h3>💌 纪念日邮件提醒</h3>
+  <p style="font-size:14px;color:var(--lyf-text-muted);margin-top:0">
+    快到了的日子，可以发一封信提醒你们。不配也能用，只是不会发信。
+  </p>
+  <p style="font-size:13.5px;color:var(--lyf-text-muted)">
+    SMTP 账号密码请写进 <code>instance/config.json</code> 或环境变量（后台不存明文密码）：
+  </p>
+  <pre style="background:var(--lyf-surface-alt);padding:14px;border-radius:10px;overflow-x:auto;font-size:12.5px">{
+  "mail_server": "smtp.qq.com",
+  "mail_port": "465",
+  "mail_username": "you@qq.com",
+  "mail_password": "授权码",
+  "mail_to": "you@qq.com,ta@example.com"
+}</pre>
+  <p style="font-size:13.5px;color:var(--lyf-text-muted)">
+    配好后：进前台会顺手判断一次（每天最多一封），也可以挂 crontab：
+  </p>
+  <pre style="background:var(--lyf-surface-alt);padding:14px;border-radius:10px;overflow-x:auto;font-size:12.5px">0 9 * * * cd /path/to/loveyouforever && .venv/bin/flask remind</pre>
+  <form method="post" action="{{ url_for('admin.peer_mail_test') }}" style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input class="input" name="to" placeholder="收件地址（留空则用上面配的）" style="max-width:300px">
+    <button class="btn btn-ghost btn-sm" type="submit">发一封试试</button>
+  </form>
+</div>
+{% endblock %}

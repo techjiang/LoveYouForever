@@ -938,3 +938,70 @@ table.data .row-title { font-weight: 600; color: var(--lyf-text); }
   .anniv-row { padding: 12px 14px; gap: 10px; }
   .anniv-row-side b { font-size: 17px; }
 }
+
+/* ==========================================================================
+   双站互连  —— v1.4.0
+
+   两台机器各跑一套系统，互相看得见对方的内容。
+   视觉上刻意做得「安静」：这不是社交广场，是两台机器之间的一条线。
+   ========================================================================== */
+
+/* 情侣页：对方的动静，纵向流水 */
+.peer-flow { display: flex; flex-direction: column; gap: 10px; }
+.peer-flow-item {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 14px 18px; border-radius: var(--radius);
+  background: var(--lyf-surface); border: 1px dashed var(--lyf-border);
+}
+.peer-flow-item img {
+  width: 68px; height: 68px; object-fit: cover;
+  border-radius: 10px; flex-shrink: 0;
+}
+.peer-flow-main { min-width: 0; }
+.peer-flow-main p { margin: 0; font-size: 14.5px; }
+.peer-flow-main small { color: var(--lyf-text-muted); font-size: 12.5px; }
+
+/* 首页：横向几张卡，多余的不显示 */
+.peer-strip {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.peer-strip-card {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 16px; border-radius: var(--radius);
+  background: var(--lyf-surface); border: 1px solid var(--lyf-border);
+  text-decoration: none; color: inherit;
+  transition: transform .2s cubic-bezier(.2,.7,.3,1), border-color .2s;
+}
+.peer-strip-card:hover { transform: translateY(-3px); border-color: var(--lyf-primary); }
+.peer-strip-card img {
+  width: 100%; height: 120px; object-fit: cover; border-radius: 10px;
+}
+.peer-strip-quote {
+  font-size: 40px; line-height: .8; color: var(--lyf-primary); opacity: .35; height: 26px;
+}
+.peer-strip-card p {
+  margin: 0; font-size: 14px; font-weight: 500;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.peer-strip-card small { color: var(--lyf-text-muted); font-size: 12px; margin-top: auto; }
+
+/* 后台：对方的瞬间网格 */
+.peer-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+.peer-card {
+  padding: 14px; border-radius: var(--radius);
+  background: var(--lyf-surface-alt); border: 1px solid var(--lyf-border);
+}
+.peer-card img {
+  width: 100%; height: 110px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;
+}
+.peer-card p { margin: 0 0 6px; font-size: 13.5px; }
+.peer-card small { color: var(--lyf-text-muted); font-size: 12px; }
+
+@media (max-width: 640px) {
+  .peer-flow-item { padding: 12px 14px; }
+  .peer-flow-item img { width: 54px; height: 54px; }
+}

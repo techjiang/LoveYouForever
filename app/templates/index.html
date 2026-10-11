@@ -127,6 +127,34 @@
 </section>
 {% endif %}
 
+{# 对方站点的动静：只在两边都连着、并且真拉到东西的时候才出现。门口不摆空架子 #}
+{% if peer and peer.connected and peer_timeline %}
+<section class="section" style="background:var(--lyf-surface-alt);border-top:1px solid var(--lyf-border);border-bottom:1px solid var(--lyf-border)">
+  <div class="container">
+    <div class="section-head">
+      <h2>TA 那边的动静</h2>
+      <span class="more">来自 {{ peer_conn.display_name }}</span>
+    </div>
+    <div class="peer-strip">
+      {% for m in peer_timeline %}
+        <a class="peer-strip-card" href="{{ url_for('couple.home') }}#peer">
+          {% if m.image %}
+            <img src="{{ m.image }}" alt="" loading="lazy">
+          {% else %}
+            <span class="peer-strip-quote">“</span>
+          {% endif %}
+          <p>{{ m.title or m.summary or '（没有文字）' }}</p>
+          <small>{{ m.author or 'TA' }} · {{ m.published_at | fmt_date('%m-%d') if m.published_at else '' }}</small>
+        </a>
+      {% endfor %}
+    </div>
+    <p style="font-size:12.5px;color:var(--lyf-text-muted);margin:14px 0 0">
+      两个人的站各写各的，连上之后互相看得见 —— 这是这个系统自己的路。
+    </p>
+  </div>
+</section>
+{% endif %}
+
 <section class="section">
   <div class="container">
     <div class="section-head"><h2>按分类找</h2></div>

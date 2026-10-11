@@ -41,9 +41,13 @@ def index():
         "days": couple.days_together if couple else 0,
     }
 
-    from app.services import wish_service
+    from app.services import peer_service, wish_service
 
     wish = wish_service.current()
+
+    # 对方站点的动静：只有连通且真有内容时才渲染，门口不摆空架子
+    peer = peer_service.summary()
+    peer_timeline = peer_service.mirror_moments(4) if peer["connected"] else []
 
     return render_template(
         "index.html",
@@ -55,6 +59,9 @@ def index():
         couple=couple,
         wish=wish,
         wish_is_today=wish_service.is_today(wish),
+        peer=peer,
+        peer_conn=peer["conn"],
+        peer_timeline=peer_timeline,
     )
 
 

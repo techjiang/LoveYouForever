@@ -12,3 +12,4 @@ tinycss2==1.5.1
 Pillow==11.3.0
 itsdangerous==2.2.0
 python-slugify==8.0.4
+requests==2.32.3

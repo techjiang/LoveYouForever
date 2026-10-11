@@ -25,6 +25,9 @@
       <span>已相爱 <strong style="font-size:20px">{{ stats.days }}</strong> 天</span>
       <span>共同写下 <strong style="font-size:20px">{{ stats.posts }}</strong> 篇文章</span>
       <span>发布 <strong style="font-size:20px">{{ stats.moments }}</strong> 条瞬间</span>
+      {% if peer and peer.connected %}
+        <span>TA 那边还有 <strong style="font-size:20px">{{ peer.total }}</strong> 条内容</span>
+      {% endif %}
     </div>
   </div>
 </section>
@@ -134,6 +137,81 @@
             <p style="font-size:14px;color:var(--lyf-text-muted)">墙上还空着。</p>
           {% endif %}
         </div>
+
+        {% if peer_conn %}
+        <div class="section-head" style="margin-top:36px" id="peer">
+          <h2>TA 那边的动静</h2>
+          {% if peer.connected %}
+            <span class="more">{{ peer_conn.display_name }} · 已连通</span>
+          {% endif %}
+        </div>
+        {% if peer.connected %}
+          {% if peer_timeline %}
+            <div class="peer-flow">
+              {% for m in peer_timeline %}
+                <div class="peer-flow-item">
+                  {% if m.image %}<img src="{{ m.image }}" alt="" loading="lazy">{% endif %}
+                  <div class="peer-flow-main">
+                    <p>{{ m.title or m.summary or '（没有文字）' }}</p>
+                    <small>{{ m.author or 'TA' }} · {{ m.published_at | fmt_date('%m-%d %H:%M') if m.published_at else '' }}</small>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="panel"><p style="color:var(--lyf-text-muted);margin:0">
+              连通了，但还没把内容拉过来。去后台「双站互连」点一次同步。
+            </p></div>
+          {% endif %}
+
+          {% if peer_anniversaries %}
+            <div class="panel" style="margin-top:16px">
+              <h3>TA 记着的日子</h3>
+              <div class="anniv-list">
+                {% for a in peer_anniversaries %}
+                  <div class="anniv-row">
+                    <span class="anniv-icon">💞</span>
+                    <div class="anniv-row-main">
+                      <strong>{{ a.title }}</strong>
+                      <small>{{ a.summary or 'TA 那边记下的' }}</small>
+                    </div>
+                    <div class="anniv-row-side">
+                      <small>{{ a.payload.get('anchor_on', '') }}</small>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if peer_vows %}
+            <div class="panel" style="margin-top:16px">
+              <h3>TA 签下的约定</h3>
+              {% for v in peer_vows %}
+                <div style="padding:10px 0;border-bottom:1px solid var(--lyf-border)">
+                  <strong>{{ v.title }}</strong>
+                  <p style="margin:4px 0 0;font-size:13.5px;color:var(--lyf-text-muted)">{{ v.summary }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <p style="font-size:12.5px;color:var(--lyf-text-muted);margin-top:10px">
+            这些内容来自 {{ peer_conn.display_name }}，在这一页只做展示。
+          </p>
+        {% else %}
+          <div class="panel">
+            <p style="color:var(--lyf-text-muted);margin:0">
+              {% if peer_conn.status == 'error' %}
+                连不上 TA 的站点了：{{ peer_conn.last_error or '网络问题' }}。
+              {% else %}
+                还没有互连。两个人的站各写各的也能用，连上之后这边就能看到 TA 发的东西。
+              {% endif %}
+              在后台「双站互连」里设置 —— <strong>互连和绑定是两回事，断开互连不会解开关系。</strong>
+            </p>
+          </div>
+        {% endif %}
+        {% endif %}
 
         <div class="section-head" style="margin-top:36px" id="anniversaries">
           <h2>值得数着的日子</h2>

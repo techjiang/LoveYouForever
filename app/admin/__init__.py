@@ -7,4 +7,5 @@ from app.admin import (  # noqa: E402,F401
     dashboard, content, gallery_admin, moment_admin, couple_admin,
     anniversary_admin, site_admin, backup_admin, plugin_admin,
     theme_admin, user_admin, wish_admin, health_admin,
+    peer_admin,
 )

@@ -133,11 +133,17 @@ def register_cli(app: Flask) -> None:
         """
         from app.utils.seed import seed_demo
 
-        seed_demo(with_partner=with_partner)
-        if with_partner:
-            click.secho("演示数据已写入（含演示用的另一半账号 partner / loveyou，上线前请删除）", fg="yellow")
+        stats = seed_demo(with_partner=with_partner)
+        wrote = "、".join(f"{k} {v}" for k, v in stats.items() if v)
+        if wrote:
+            click.secho(f"新增：{wrote}", fg="green")
         else:
-            click.secho("演示数据已写入（未创建虚拟另一半，可用 --with-partner 查看双人效果）", fg="green")
+            click.secho("演示内容已经齐了，这次没有新增。", fg="green")
+        click.echo("这条命令是补全而不是重建：已经有的内容不会重复写，也不会被覆盖。")
+        if with_partner:
+            click.secho("含演示用的另一半账号 partner / loveyou，上线前请删除", fg="yellow")
+        else:
+            click.secho("未创建虚拟另一半，可用 --with-partner 查看双人效果", fg="yellow")
 
     @app.cli.command("doctor")
     @with_appcontext
@@ -145,7 +151,6 @@ def register_cli(app: Flask) -> None:
         """体检：检查目录权限、数据库、配置是否正常。"""
         import os
 
-        from app.extensions import db
         from app.models import Couple, Post, User
 
         click.echo("=== LoveYouForever 体检报告 ===")
@@ -156,7 +161,6 @@ def register_cli(app: Flask) -> None:
         couple = Couple.query.first()
         click.echo(f"情侣关系: {'已绑定 ' + couple.status_text if couple else '未绑定'}")
 
-        from app.models import Anniversary
         from app.services import anniversary_service
 
         stats = anniversary_service.stats(couple)
@@ -186,3 +190,90 @@ def register_cli(app: Flask) -> None:
             click.secho("体检通过，有几项建议看一下。", fg="yellow")
         else:
             click.secho("检查完毕，一切正常。", fg="green")
+
+    @app.cli.command("remind")
+    @click.option("--force", is_flag=True, help="绕过「今天已经发过」的判断，直接发")
+    @with_appcontext
+    def remind_cmd(force):
+        """检查快到的纪念日，该提醒就发一封邮件。
+
+        配进 crontab 就是定时提醒：0 9 * * * flask remind
+        """
+        from app.models import Couple
+        from app.services import mail_service
+
+        couple = Couple.query.first()
+        if couple is None:
+            click.secho("还没有绑定情侣关系，没什么可提醒的。", fg="yellow")
+            return
+        if not mail_service.is_configured():
+            click.secho("没配 SMTP（instance/config.json 或 LYF_MAIL_* 环境变量），跳过。", fg="yellow")
+            return
+
+        items = mail_service.due_items(couple)
+        if not items:
+            click.secho("三天内没有要提醒的日子。", fg="green")
+            return
+        for a in items:
+            click.echo(f"  · {a.title}")
+
+        if force:
+            from app.models import SiteSetting
+            from app.extensions import db
+
+            SiteSetting.set("reminder_sent_on", "")
+            db.session.commit()
+        sent = mail_service.maybe_send_daily(couple)
+        click.secho("已发出提醒。" if sent else "今天已经发过了（加 --force 可强发）。",
+                    fg="green" if sent else "yellow")
+
+    @app.cli.command("peer")
+    @click.option("--url", default="", help="对方站点地址")
+    @click.option("--token", default="", help="对方的互连令牌")
+    @click.option("--sync", is_flag=True, help="连接后立刻同步一次")
+    @with_appcontext
+    def peer_cmd(url, token, sync):
+        """连接另一台「永远爱你」，把对方的内容接过来。
+
+        例子：flask peer --url https://ta.example.com --sync
+        """
+        from app.services import peer_service
+        from app.services.peer_service import PeerError
+
+        try:
+            conn = peer_service.connect(url, token)
+        except PeerError as exc:
+            click.secho(f"连接失败：{exc}", fg="red")
+            return
+        click.secho(f"已连上 {conn.display_name}", fg="green")
+        click.echo(f"本机互连令牌（发给对方）：{peer_service.summary()['my_token']}")
+
+        if sync:
+            stats = peer_service.sync(source="cli")
+            wrote = "、".join(f"{k} {v}" for k, v in stats.items() if v) or "没有新内容"
+            click.secho(f"同步完成：{wrote}", fg="green")
+
+    @app.cli.command("peer-demo")
+    @with_appcontext
+    def peer_demo_cmd():
+        """在本机造一个「对方站点」，用来演示 / 自测互连效果。
+
+        会起一个临时的假站点对象（不联网），往镜像表里写一批带 demo 标记的内容。
+        只用于演示，正式站别跑 —— 真实互连请用 `flask peer`。
+        """
+        from app.services import peer_service
+
+        stats = peer_service.seed_demo_peer()
+        wrote = "、".join(f"{k} {v}" for k, v in stats.items() if v) or "已经造过了"
+        click.secho(f"演示互连已就绪：{wrote}", fg="green")
+        click.echo("打开后台「双站互连」或情侣页就能看到效果。")
+        click.echo("（正式站要连真站点：flask peer --url https://ta.example.com）")
+
+    @app.cli.command("peer-demo-clear")
+    @with_appcontext
+    def peer_demo_clear_cmd():
+        """清掉 `flask peer-demo` 造的演示互连数据。"""
+        from app.services import peer_service
+
+        n = peer_service.clear_demo_peer()
+        click.secho(f"已清掉演示互连数据（{n} 条）。", fg="green")

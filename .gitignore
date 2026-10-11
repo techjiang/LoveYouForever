@@ -6,6 +6,9 @@ venv/
 env/
 instance/*.db
 instance/*.sqlite3
+# 双站互连缓存的对方图片：本机产物，不进仓库
+instance/peer_cache/
+
 # 密钥和本地配置绝不进仓库
 instance/secret_key
 instance/config.json

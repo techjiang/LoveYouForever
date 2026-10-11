@@ -1,8 +1,7 @@
 """演示数据：第一次装好之后不至于是一个空壳。"""
 from app.extensions import db
 from app.models import (
-    Album, Category, CoupleEvent, CustomPage, FriendLink, Moment, Photo, Post,
-    SiteSetting, Tag, User,
+    Album, Category, CustomPage, FriendLink, Moment, Photo, Post, Tag, User,
 )
 from app.utils.helpers import slugify
 from app.utils.markdown_render import extract_summary, reading_minutes, render
@@ -24,7 +23,7 @@ DEMO_MOMENTS = [
 ]
 
 
-def seed_demo(with_partner: bool = False) -> None:
+def seed_demo(with_partner: bool = False) -> dict:
     """写入演示内容。
 
     `with_partner=False`（默认）时**不会**凭空造一个假对象 —— 一个真实的站
@@ -33,15 +32,19 @@ def seed_demo(with_partner: bool = False) -> None:
     想看双人视角的效果，用 `flask seed --with-partner`：
     会建一个 `partner` 账号（密码 loveyou）和一条未永封的绑定关系，
     上线前记得把这条关系清掉。
+
+    **这一步是补全，不是重建。** 早先的写法是「数据库里有文章就直接 return」，
+    结果只要跑过一次 `flask init`（bootstrap 会建 4 个默认分类、3 个页面），
+    演示内容就再也补不进去了 —— 一个演示站看起来像被谁清空了。现在逐类检查，
+    缺什么补什么，跑第二遍不会重复写。
     """
-    if Post.query.count() > 0:
-        return
+    stats = _empty_stats()
 
     from app.services import site_service
 
     admin = User.query.filter_by(is_admin=True).first() or User.query.first()
     if admin is None:
-        return
+        return stats
 
     partner = None
     if with_partner:
@@ -51,6 +54,9 @@ def seed_demo(with_partner: bool = False) -> None:
             partner = User(username="partner", nickname="小可爱", role_label="老婆", bio="演示账号，上线前请删除")
             partner.set_password("loveyou")
             db.session.add(partner)
+            db.session.commit()
+        elif partner.couple_id is None:
+            partner.role_label = partner.role_label or "老婆"
             db.session.commit()
 
     couple = None
@@ -104,12 +110,17 @@ def seed_demo(with_partner: bool = False) -> None:
             db.session.add(c)
             db.session.flush()
             cats[name] = c
+            stats["categories"] += 1
+    db.session.commit()
 
     for i, (title, cat, body, tags) in enumerate(DEMO_POSTS):
+        slug = slugify(title)
+        if Post.query.filter_by(slug=slug).first() is not None:
+            continue  # 已经有了，别写第二遍
         author = admin if (partner is None or i % 2 == 0) else partner
         post = Post(
             title=title,
-            slug=slugify(title),
+            slug=slug,
             content_md=body,
             content_html=render(body),
             summary=extract_summary(body),
@@ -121,47 +132,82 @@ def seed_demo(with_partner: bool = False) -> None:
         )
         post.tags = [_ensure_tag(t) for t in tags]
         db.session.add(post)
+        stats["posts"] += 1
+    db.session.commit()
 
-    for content, mood in DEMO_MOMENTS:
+    for idx, (content, mood) in enumerate(DEMO_MOMENTS):
+        if Moment.query.filter_by(content=content).first() is not None:
+            continue
         db.session.add(
             Moment(
                 content=content,
                 mood=mood,
-                author_id=admin.id if (partner is None or DEMO_MOMENTS.index((content, mood)) % 2 == 0) else partner.id,
+                author_id=admin.id if (partner is None or idx % 2 == 0) else partner.id,
                 co_authored=False,
             )
         )
+        stats["moments"] += 1
+    db.session.commit()
 
     if with_partner:
         # 门口那句话：演示站最显眼的位置不该是空的
         from app.models import DailyWish
 
-        db.session.add(
-            DailyWish(content="今天也想你，和昨天一样。", mood="miss", author_id=partner.id)
-        )
+        if DailyWish.query.count() == 0:
+            db.session.add(
+                DailyWish(content="今天也想你，和昨天一样。", mood="miss", author_id=partner.id)
+            )
+            stats["wishes"] += 1
 
-    album = Album(title="我们的相册", slug="our-album", description="随手拍下来的日常", location="家里")
-    db.session.add(album)
-    db.session.flush()
-    for title in ["夕阳", "早餐", "猫", "书桌", "雨天", "旅行"]:
-        db.session.add(Photo(album_id=album.id, url=f"/static/img/demo/{slugify(title)}.svg", caption=title))
+    album = Album.query.filter_by(slug="our-album").first()
+    if album is None:
+        album = Album(title="我们的相册", slug="our-album", description="随手拍下来的日常", location="家里")
+        db.session.add(album)
+        db.session.flush()
+        for title in ["夕阳", "早餐", "猫", "书桌", "雨天", "旅行"]:
+            db.session.add(Photo(album_id=album.id, url=f"/static/img/demo/{slugify(title)}.svg", caption=title))
+            stats["photos"] += 1
+        stats["albums"] += 1
 
     for name, url, desc in [
         ("科技酱的文档", "https://docs.asoe.cn", "本站作者的技术文档站"),
         ("LoveYouForever", "https://github.com/techjiang/LoveYouForever", "情侣博客开源项目"),
     ]:
+        if FriendLink.query.filter_by(url=url).first() is not None:
+            continue
         db.session.add(FriendLink(name=name, url=url, description=desc, is_approved=True))
+        stats["links"] += 1
 
-    db.session.add(
-        CustomPage(
-            title="我们的清单",
-            slug="our-list",
-            content_md="## 想一起做的事\n\n- [ ] 去看一次海\n- [ ] 一起做一顿完整的饭\n- [ ] 养一只猫\n\n{{latest_posts}}\n",
-            content_html=render("## 想一起做的事\n\n- [ ] 去看一次海\n- [ ] 一起做一顿完整的饭\n- [ ] 养一只猫\n\n{{latest_posts}}\n"),
-            show_in_nav=True,
+    if CustomPage.query.filter_by(slug="our-list").first() is None:
+        db.session.add(
+            CustomPage(
+                title="我们的清单",
+                slug="our-list",
+                content_md=_LIST_MD,
+                content_html=render(_LIST_MD),
+                show_in_nav=True,
+            )
         )
-    )
+        stats["pages"] += 1
+
     db.session.commit()
+    return stats
+
+
+_LIST_MD = (
+    "## 想一起做的事\n\n"
+    "- [ ] 去看一次海\n"
+    "- [ ] 一起做一顿完整的饭\n"
+    "- [ ] 养一只猫\n\n"
+    "{{latest_posts}}\n"
+)
+
+
+def _empty_stats() -> dict:
+    return {
+        "posts": 0, "moments": 0, "categories": 0, "albums": 0,
+        "photos": 0, "links": 0, "pages": 0, "wishes": 0,
+    }
 
 
 def _ensure_tag(name: str) -> Tag:
