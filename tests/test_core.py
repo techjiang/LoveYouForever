@@ -256,3 +256,152 @@ def test_all_themes_have_required_tokens(app):
     for key, theme in theme_service.all_themes().items():
         for token in theme_service.COLOR_TOKENS:
             assert token in theme["colors"], f"{key} 缺少 {token}"
+
+
+# ----------------------------------------------------------------- 纪念日
+def _make_anniversary(app, title, anchor, **kw):
+    from app.services import anniversary_service
+
+    with app.app_context():
+        from app.models import Anniversary, Couple
+
+        couple = Couple.query.first()
+        a = anniversary_service.create(couple, title, anchor, **kw)
+        return a.id
+
+
+def test_yearly_anniversary_rolls_to_next_year(app):
+    """每年重复的日子，过了今年就该指向明年，而不是显示负数。"""
+    from datetime import date
+
+    from app.models import Anniversary
+    from app.services import anniversary_service
+
+    with app.app_context():
+        anchor = date(2020, 5, 20)
+        a = anniversary_service.create(None, "周年", anchor, repeat_yearly=True)
+
+        # 锚点当天：就是今天
+        assert a.days_left(date(2026, 5, 20)) == 0
+        # 锚点次日：指向明年 5/20
+        assert a.days_left(date(2026, 5, 21)) == 364 or a.days_left(date(2026, 5, 21)) == 365
+        # 永远是正数
+        assert a.days_left(date(2030, 1, 1)) > 0
+        assert a.next_date(date(2026, 5, 21)) == date(2027, 5, 20)
+
+
+def test_one_off_countdown_expires(app):
+    """一次性的倒数日，过了就没有下一次。"""
+    from datetime import date
+
+    from app.services import anniversary_service
+
+    with app.app_context():
+        a = anniversary_service.create(None, "领证", date(2026, 12, 31), repeat_yearly=False)
+        assert a.days_left(date(2026, 12, 1)) == 30
+        assert a.days_left(date(2026, 12, 31)) == 0
+        assert a.days_left(date(2027, 1, 1)) is None
+        assert "已过去" in anniversary_service.humanize(a, date(2027, 1, 1))
+
+
+def test_leap_day_anniversary_does_not_crash(app):
+    """2/29 出生的人，在平年不能被除零/值错误打死。"""
+    from datetime import date
+
+    from app.services import anniversary_service
+
+    with app.app_context():
+        a = anniversary_service.create(None, "闰日生日", date(2000, 2, 29))
+        left = a.days_left(date(2026, 3, 1))
+        assert left is not None and left > 0
+
+
+def test_anniversary_ordering_pins_today_first(app):
+    """今天的排最前，置顶其次，剩下的按天数升序。"""
+    from datetime import date, timedelta
+
+    from app.services import anniversary_service
+
+    with app.app_context():
+        today = date.today()
+        anniversary_service.create(None, "很久以后", today + timedelta(days=200))
+        anniversary_service.create(None, "明天", today + timedelta(days=1))
+        anniversary_service.create(None, "就是今天", today)
+
+        items = anniversary_service.list_all(None)
+        assert items[0].title == "就是今天"
+        assert items[1].title == "明天"
+
+        stats = anniversary_service.stats(None)
+        assert stats["today"] == 1
+        assert stats["next"].title == "明天"
+
+
+def test_binding_seeds_first_anniversary(app):
+    """绑定之后首页不该是空的，自动记下「我们在一起」。"""
+    from app.services import anniversary_service, couple_service
+
+    with app.app_context():
+        from app.extensions import db
+        from app.models import User
+
+        a = User(username="a", nickname="A")
+        a.set_password("pass1234")
+        b = User(username="b", nickname="B")
+        b.set_password("pass1234")
+        db.session.add_all([a, b])
+        db.session.commit()
+
+        token = couple_service.create_bind_token(a)
+        couple = couple_service.accept_bind_token(b, token.token)
+
+        assert couple.is_complete
+        items = anniversary_service.list_all(couple)
+        assert len(items) == 1
+        assert items[0].title == "我们在一起"
+        assert items[0].is_pinned
+
+
+def test_seed_does_not_invent_partner(app):
+    """默认 seed 不该凭空造一个「小可爱」出来。"""
+    from app.utils.seed import seed_demo
+
+    with app.app_context():
+        from app.models import User
+
+        # bootstrap 已经建好了默认 admin，直接拿来用
+        admin = User.query.filter_by(is_admin=True).first()
+        assert admin is not None
+
+        seed_demo()  # 默认不建假人
+
+        assert User.query.filter_by(username="partner").first() is None
+        from app.models import Post
+
+        posts = Post.query.all()
+        assert posts, "演示文章还是应该写入"
+        assert all(p.author_id == admin.id for p in posts)
+
+
+def test_homepage_shows_countdown(app, client):
+    """首页应该出现倒计时条，而不是只在后台可见。"""
+    from datetime import date, timedelta
+
+    from app.extensions import db
+    from app.models import Couple, User
+    from app.services import anniversary_service
+
+    with app.app_context():
+        u = User(username="solo", nickname="Solo")
+        u.set_password("pass1234")
+        db.session.add(u)
+        db.session.commit()
+        c = Couple(name="我们")
+        db.session.add(c)
+        db.session.commit()
+        anniversary_service.create(c, "在一起", date.today() + timedelta(days=9))
+
+    html = client.get("/").get_data(as_text=True)
+    assert "值得数着的日子" in html
+    assert "在一起" in html
+    assert "还有" in html and "9" in html

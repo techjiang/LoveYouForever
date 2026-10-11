@@ -24,7 +24,16 @@ DEMO_MOMENTS = [
 ]
 
 
-def seed_demo() -> None:
+def seed_demo(with_partner: bool = False) -> None:
+    """写入演示内容。
+
+    `with_partner=False`（默认）时**不会**凭空造一个假对象 —— 一个真实的站
+    不该在数据库里躺着一个谁也不是的「小可爱」。这时候演示文章全部挂在站长名下。
+
+    想看双人视角的效果，用 `flask seed --with-partner`：
+    会建一个 `partner` 账号（密码 loveyou）和一条未永封的绑定关系，
+    上线前记得把这条关系清掉。
+    """
     if Post.query.count() > 0:
         return
 
@@ -34,24 +43,35 @@ def seed_demo() -> None:
     if admin is None:
         return
 
-    # 一个虚拟的另一半，让页面看起来是「两个人」
-    partner = User.query.filter_by(username="partner").first()
-    if partner is None:
-        partner = User(username="partner", nickname="小可爱", role_label="老婆", bio="被爱的人 也在爱着")
-        partner.set_password("loveyou")
-        db.session.add(partner)
-        db.session.commit()
+    partner = None
+    if with_partner:
+        # 显式要求才建假人：给开发/演示用，不要让它溜进正式站
+        partner = User.query.filter_by(username="partner").first()
+        if partner is None:
+            partner = User(username="partner", nickname="小可爱", role_label="老婆", bio="演示账号，上线前请删除")
+            partner.set_password("loveyou")
+            db.session.add(partner)
+            db.session.commit()
 
     couple = None
     from app.models import Couple
 
-    if Couple.query.count() == 0:
+    if with_partner and Couple.query.count() == 0:
+        # 演示站的绑定时间往前推一年：这样「0 天相伴」不会出现，
+        # 「我们的一年」那篇演示文章也才言之有物。
+        from datetime import timedelta
+
+        from app.models.mixins import utcnow
+
+        bound_at = utcnow() - timedelta(days=365)
+
         couple = Couple(
             name=f"{admin.display_name} & {partner.display_name}",
             slogan=site_service.get("couple_slogan", "一生一世，永不分离"),
             user_a_id=admin.id,
             user_b_id=partner.id,
-            bound_at=__import__("app.models.mixins", fromlist=["utcnow"]).utcnow(),
+            bound_at=bound_at,
+            anniversary=bound_at.date(),
         )
         db.session.add(couple)
         db.session.flush()
@@ -59,6 +79,24 @@ def seed_demo() -> None:
         partner.couple_id = couple.id
         admin.role_label = admin.role_label or "老公"
         db.session.commit()
+        # 顺手把「在一起」记成纪念日，演示站首页才有东西可数
+        from app.services import anniversary_service
+
+        anniversary_service.seed_defaults(couple)
+        # 演示站再多几个，让「值得数着的日子」这一块看起来是活的
+        for title, days, icon, kind, repeat in [
+            ("她的生日", 45, "🎂", "birthday", True),
+            ("第一次一起看海", -120, "🌊", "anniversary", False),
+            ("下次一起出发", 12, "✈️", "countdown", False),
+        ]:
+            anniversary_service.create(
+                couple,
+                title,
+                (utcnow() + timedelta(days=days)).date(),
+                icon=icon,
+                kind=kind,
+                repeat_yearly=repeat,
+            )
 
     cats = {c.name: c for c in Category.query.all()}
     for name in {p[1] for p in DEMO_POSTS}:
@@ -69,7 +107,7 @@ def seed_demo() -> None:
             cats[name] = c
 
     for i, (title, cat, body, tags) in enumerate(DEMO_POSTS):
-        author = admin if i % 2 == 0 else partner
+        author = admin if (partner is None or i % 2 == 0) else partner
         post = Post(
             title=title,
             slug=slugify(title),
@@ -90,7 +128,7 @@ def seed_demo() -> None:
             Moment(
                 content=content,
                 mood=mood,
-                author_id=admin.id if DEMO_MOMENTS.index((content, mood)) % 2 == 0 else partner.id,
+                author_id=admin.id if (partner is None or DEMO_MOMENTS.index((content, mood)) % 2 == 0) else partner.id,
                 co_authored=False,
             )
         )

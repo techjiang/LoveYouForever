@@ -86,6 +86,58 @@
           </form>
         </div>
 
+        <div class="section-head" style="margin-top:36px" id="anniversaries">
+          <h2>值得数着的日子</h2>
+        </div>
+        {% if anniversaries %}
+          <div class="anniv-list">
+            {% for a in anniversaries %}
+              <div class="anniv-row{% if a.is_today %} is-today{% endif %}">
+                <span class="anniv-icon">{{ a.icon or '💞' }}</span>
+                <div class="anniv-row-main">
+                  <strong>{{ a.title }}{% if a.is_pinned %} <span class="pin">★</span>{% endif %}</strong>
+                  <small>{{ a.kind_label }} · 起点 {{ a.anchor_on | fmt_date }}{% if a.note %} · {{ a.note }}{% endif %}</small>
+                </div>
+                <div class="anniv-row-side">
+                  <b>{{ a.days_left() if a.days_left() is not none else '—' }}</b>
+                  <small>{{ anniversary_humanize(a) }}</small>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="panel"><p style="color:var(--lyf-text-muted);margin:0">还没有纪念日。下面加一个，首页会替你们数着。</p></div>
+        {% endif %}
+
+        <div class="panel" style="margin-top:16px">
+          <h3>＋ 加一个日子</h3>
+          <form method="post" action="{{ url_for('couple.anniversary_add') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-grid">
+              <div class="form-row"><label>名字</label><input class="input" name="title" required placeholder="比如：第一次见面"></div>
+              <div class="form-row"><label>日期</label><input class="input" type="date" name="anchor_on" required></div>
+            </div>
+            <div class="form-grid">
+              <div class="form-row">
+                <label>类型</label>
+                <select class="input" name="kind">
+                  <option value="anniversary">纪念日</option>
+                  <option value="birthday">生日</option>
+                  <option value="countdown">倒数日</option>
+                  <option value="festival">节日</option>
+                  <option value="custom">自定义</option>
+                </select>
+              </div>
+              <div class="form-row"><label>图标</label><input class="input" name="icon" placeholder="💞" maxlength="4"></div>
+            </div>
+            <div class="form-grid">
+              <div class="form-row checkbox-row"><label class="checkbox-row"><input type="checkbox" name="repeat_yearly" value="1" checked> 每年重复</label></div>
+              <div class="form-row checkbox-row"><label class="checkbox-row"><input type="checkbox" name="is_pinned" value="1"> 置顶</label></div>
+            </div>
+            <button class="btn btn-primary" type="submit">记下来</button>
+          </form>
+        </div>
+
         <div class="section-head" style="margin-top:36px">
           <h2>我们的约定</h2>
         </div>

@@ -107,6 +107,15 @@ def accept_bind_token(user: User, raw_token: str, partner_site: str = "") -> Cou
         )
     )
     db.session.commit()
+
+    # 把「在一起」这天自动记成一个纪念日，用户不用自己再建一遍
+    try:
+        from app.services import anniversary_service
+
+        anniversary_service.seed_defaults(couple)
+    except Exception:  # 纪念日建不出来也不该挡住绑定
+        db.session.rollback()
+
     return couple
 
 

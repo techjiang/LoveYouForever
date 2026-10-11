@@ -123,13 +123,21 @@ def register_cli(app: Flask) -> None:
         click.secho(f"导入完成：{stats}", fg="green")
 
     @app.cli.command("seed")
+    @click.option("--with-partner", is_flag=True, help="额外建一个演示用的「另一半」账号，方便看双人效果")
     @with_appcontext
-    def seed_cmd():
-        """写入一批演示内容，方便第一次看到效果。"""
+    def seed_cmd(with_partner):
+        """写入一批演示内容，方便第一次看到效果。
+
+        默认不造假人：演示文章全部归到站长名下。加 --with-partner 才会
+        创建一个 partner 账号（密码 loveyou）和一条演示绑定关系。
+        """
         from app.utils.seed import seed_demo
 
-        seed_demo()
-        click.secho("演示数据已写入", fg="green")
+        seed_demo(with_partner=with_partner)
+        if with_partner:
+            click.secho("演示数据已写入（含演示用的另一半账号 partner / loveyou，上线前请删除）", fg="yellow")
+        else:
+            click.secho("演示数据已写入（未创建虚拟另一半，可用 --with-partner 查看双人效果）", fg="green")
 
     @app.cli.command("doctor")
     @with_appcontext
@@ -147,4 +155,13 @@ def register_cli(app: Flask) -> None:
         click.echo(f"用户数: {User.query.count()}  文章数: {Post.query.count()}")
         couple = Couple.query.first()
         click.echo(f"情侣关系: {'已绑定 ' + couple.status_text if couple else '未绑定'}")
+
+        from app.models import Anniversary
+        from app.services import anniversary_service
+
+        stats = anniversary_service.stats(couple)
+        click.echo(f"纪念日: {stats['total']} 个（今天 {stats['today']} 个，未来 30 天 {stats['soon']} 个）")
+        nxt = stats["next"]
+        if nxt:
+            click.echo(f"下一个: {nxt.title} —— {anniversary_service.humanize(nxt)}")
         click.secho("检查完毕。", fg="green")

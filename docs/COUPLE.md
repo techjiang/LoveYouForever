@@ -15,7 +15,8 @@
 User ──couple_id──> Couple <── user_a_id / user_b_id ── User
                       │
                       ├── Vow          约定（双方签名）
-                      └── CoupleEvent  时间线
+                      ├── CoupleEvent  时间线（流水式记录）
+                      └── Anniversary  纪念日（反复要数的日子）
 BindToken  一次性握手码
 ```
 
@@ -166,3 +167,33 @@ def author_line(self):
 **Powered by 科技酱 & LoveYouForever**
 
 </div>
+
+
+## 纪念日和时间的区别
+
+两者容易混，其实分工很清楚：
+
+| | CoupleEvent（时间线） | Anniversary（纪念日） |
+|---|---|---|
+| 语义 | **已经发生**的事 | **要被反复数**的日子 |
+| 方向 | 往回看 | 往前数 |
+| 例子 | 第一次见面、第一次旅行 | 生日、周年、下次见面的那天 |
+| 重复 | 不重复 | 可每年重复 |
+
+`Anniversary` 的两个关键字段：
+
+- `anchor_on` —— 锚定的那一天，所有推算都以它为基准
+- `repeat_yearly` —— 是否每年重来
+
+倒计时的算法在 `app/models/anniversary.py` 的 `_next_occurrence()`：
+
+1. 不重复的日子，过去了就返回 `None`（页面显示「已过去 N 天」）
+2. 重复的日子，取今年的同一月日；若已过，取明年
+3. 2/29 落在平年时退回 2/28，不会抛 `ValueError`
+
+服务层在 `app/services/anniversary_service.py`，模板里不做任何日期运算 ——
+`list_all()` 返回的列表已经排好序（今天的在前，其余按剩余天数升序），
+`humanize()` 返回现成的中文文案。
+
+绑定成功时会调用 `seed_defaults()` 自动写入「我们在一起」，
+只写一次，之后不会覆盖用户自己的编辑。

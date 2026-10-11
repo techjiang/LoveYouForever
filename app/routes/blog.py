@@ -40,6 +40,12 @@ def index():
         "categories": Category.query.count(),
         "days": couple.days_together if couple else 0,
     }
+
+    from app.services import anniversary_service
+
+    anniversaries = anniversary_service.upcoming(couple, limit=4)
+    next_anniversary = anniversary_service.next_one(couple)
+
     return render_template(
         "index.html",
         posts=page.items,
@@ -48,6 +54,11 @@ def index():
         moments=recent_moments,
         stats=stats,
         couple=couple,
+        anniversaries=anniversaries,
+        next_anniversary=next_anniversary,
+        anniversary_humanize=anniversary_service.humanize,
+        # 一篇内容都没有的新站，首页不该只剩一块空白
+        is_fresh_install=not page.items and not recent_moments and not pinned,
     )
 
 

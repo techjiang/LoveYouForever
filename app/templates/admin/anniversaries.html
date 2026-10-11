@@ -1,0 +1,85 @@
+{% extends "admin/base.html" %}
+{% block title %}纪念日{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>💞 纪念日与倒数日</h1>
+  <p class="muted">反复要过的日子放这里，首页会替你们数着。</p>
+</div>
+
+<div class="admin-grid cols-2" style="align-items:start">
+  <div class="panel">
+    <h3>＋ 添加一天</h3>
+    <form method="post" action="{{ url_for('admin.anniversary_new') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row"><label>名字</label><input class="input" name="title" required placeholder="比如：我们在一起的这天"></div>
+      <div class="form-grid">
+        <div class="form-row"><label>起始日期</label><input class="input" type="date" name="anchor_on" required></div>
+        <div class="form-row"><label>图标</label><input class="input" name="icon" placeholder="💞" maxlength="4"></div>
+      </div>
+      <div class="form-row">
+        <label>类型</label>
+        <select class="input" name="kind">
+          {% for key, label in kinds.items() %}
+            <option value="{{ key }}"{% if key == 'anniversary' %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row"><label>备注</label><textarea class="textarea" name="note" rows="2"></textarea></div>
+      <div class="form-row checkbox-row">
+        <label class="checkbox-row"><input type="checkbox" name="repeat_yearly" value="1" checked> 每年重复（生日、周年）</label>
+      </div>
+      <div class="form-row checkbox-row">
+        <label class="checkbox-row"><input type="checkbox" name="is_pinned" value="1"> 置顶</label>
+      </div>
+      <button class="btn btn-primary" type="submit">记下来</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h3>批量录入</h3>
+    <p class="muted" style="font-size:13px">一行一个，格式：<code>日期 | 名字 | 类型</code>（类型可省）。想记一次性的日子就在最后加 <code>| 否</code>。</p>
+    <form method="post" action="{{ url_for('admin.anniversary_bulk') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <textarea class="textarea" name="bulk" rows="8" placeholder="2021-05-20 | 我们在一起 | anniversary
+1998-03-14 | 她的生日 | birthday
+2026-02-14 | 领证那天 | anniversary | 否"></textarea>
+      <button class="btn btn-primary" type="submit" style="margin-top:12px">批量录入</button>
+    </form>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:20px">
+  <h3>全部（{{ items | length }} 个）</h3>
+  <div class="anniv-list">
+    {% for a in items %}
+      <div class="anniv-row{% if a.is_today %} is-today{% endif %}">
+        <span class="anniv-icon">{{ a.icon or '💞' }}</span>
+        <div class="anniv-row-main">
+          <strong>{{ a.title }}{% if a.is_pinned %} <span class="pin">★</span>{% endif %}</strong>
+          <small>
+            {{ a.kind_label }} · 起点 {{ a.anchor_on | fmt_date }}
+            {%- if a.repeat_yearly and a.years_count %} · 第 {{ a.years_count + 1 }} 年{% endif %}
+            {%- if a.note %} · {{ a.note | truncate_text(30) }}{% endif %}
+          </small>
+        </div>
+        <div class="anniv-row-side">
+          <b>{{ a.days_left() if a.days_left() is not none else '—' }}</b>
+          <small>{{ humanize(a) }}</small>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <form method="post" action="{{ url_for('admin.anniversary_pin', item_id=a.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ghost btn-sm" type="submit">{{ '取消置顶' if a.is_pinned else '置顶' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.anniversary_delete', item_id=a.id) }}" onsubmit="return confirm('删除「{{ a.title }}」？')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm" type="submit">删除</button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state"><span class="icon">💞</span>还没有纪念日，上面加一个吧</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

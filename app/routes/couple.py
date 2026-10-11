@@ -23,6 +23,11 @@ def home():
     ).all()
     stats = couple_service.couple_stats(couple)
     tampered = couple_service.detect_tamper(couple)
+
+    from app.services import anniversary_service
+
+    anniversaries = anniversary_service.list_all(couple)
+
     return render_template(
         "couple/home.html",
         couple=couple,
@@ -30,7 +35,44 @@ def home():
         events=events,
         stats=stats,
         tampered=tampered,
+        anniversaries=anniversaries,
+        anniversary_humanize=anniversary_service.humanize,
     )
+
+
+@couple_bp.route("/anniversaries/add", methods=["POST"])
+@login_required
+def anniversary_add():
+    """在情侣页直接加一个日子，不用绕去后台。"""
+    couple = current_user.couple
+    if couple is None:
+        return redirect(url_for("couple.bind"))
+
+    from datetime import date
+
+    from app.services import anniversary_service
+
+    title = (request.form.get("title") or "").strip()
+    raw = (request.form.get("anchor_on") or "").strip()
+    try:
+        anchor = date.fromisoformat(raw) if raw else None
+    except ValueError:
+        anchor = None
+
+    if not title or anchor is None:
+        flash("名字和日期都要填哦", "error")
+    else:
+        anniversary_service.create(
+            couple,
+            title,
+            anchor,
+            kind=request.form.get("kind") or "anniversary",
+            repeat_yearly=bool(request.form.get("repeat_yearly")),
+            icon=request.form.get("icon") or "",
+            is_pinned=bool(request.form.get("is_pinned")),
+        )
+        flash(f"「{title}」记下了", "success")
+    return redirect(url_for("couple.home") + "#anniversaries")
 
 
 @couple_bp.route("/bind")

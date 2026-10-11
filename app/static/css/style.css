@@ -225,6 +225,9 @@ h1, h2, h3, h4 { line-height: 1.35; margin: 0 0 .6em; font-weight: 700; letter-s
   display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 16px; margin-top: -40px; position: relative; z-index: 3;
 }
+/* 上方已经有倒计时条时，统计卡不需要再往 hero 里挤 */
+.anniv-banner ~ .container .stat-strip,
+.anniv-banner + .container .stat-strip { margin-top: 0; }
 .stat-card {
   background: var(--lyf-surface); border: 1px solid var(--lyf-border);
   border-radius: var(--radius); padding: 20px; text-align: center; box-shadow: var(--shadow-sm);
@@ -647,6 +650,7 @@ h1, h2, h3, h4 { line-height: 1.35; margin: 0 0 .6em; font-weight: 700; letter-s
   .container { padding: 0 16px; }
   .hero { padding: 60px 0 50px; }
   .stat-strip { grid-template-columns: repeat(2, 1fr); margin-top: -26px; }
+  .anniv-banner + .container .stat-strip, .anniv-banner ~ .container .stat-strip { margin-top: 0; }
   .post-grid { grid-template-columns: 1fr; }
   .post-nav { grid-template-columns: 1fr; }
   .couple-members { gap: 12px; }
@@ -859,4 +863,101 @@ table.data .row-title { font-weight: 600; color: var(--lyf-text); }
   .admin-nav .group-title { display: none; }
   .admin-nav a { white-space: nowrap; }
   .admin-main { padding: 20px 16px 50px; }
+}
+
+/* ==========================================================================
+   纪念日 / 倒数日  —— v1.1.0
+   首页一条提醒 + 一块卡片墙，情侣页复用同一套。
+   ========================================================================== */
+
+.anniv-banner {
+  display: flex; align-items: center; gap: 14px;
+  margin: -40px 0 18px; padding: 14px 20px;
+  background: var(--lyf-surface);
+  border: 1px solid var(--lyf-border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--lyf-primary) 12%, transparent);
+  color: var(--lyf-text); position: relative; z-index: 2;
+  transition: transform .2s, box-shadow .2s;
+}
+.anniv-banner:hover { transform: translateY(-2px); box-shadow: 0 12px 30px color-mix(in srgb, var(--lyf-primary) 20%, transparent); opacity: 1; }
+.anniv-banner-icon { font-size: 26px; line-height: 1; }
+.anniv-banner-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.anniv-banner-text strong { font-size: 15px; }
+.anniv-banner-text em { font-style: normal; font-size: 13px; color: var(--lyf-primary); font-weight: 600; }
+.anniv-banner-badge {
+  margin-left: auto; flex-shrink: 0;
+  font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+  background: var(--lyf-primary-soft); color: var(--lyf-primary);
+}
+
+.anniv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.anniv-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 18px; border-radius: var(--radius);
+  background: var(--lyf-surface); border: 1px solid var(--lyf-border);
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+}
+.anniv-card:hover { transform: translateY(-3px); border-color: var(--lyf-primary); box-shadow: 0 10px 26px color-mix(in srgb, var(--lyf-primary) 16%, transparent); }
+.anniv-card.is-today {
+  border-color: var(--lyf-primary);
+  background: linear-gradient(160deg, var(--lyf-primary-soft), var(--lyf-surface));
+}
+.anniv-icon { font-size: 24px; line-height: 1; }
+.anniv-card strong { font-size: 15px; }
+.anniv-count { font-size: 13px; color: var(--lyf-text-muted); }
+.anniv-count b { color: var(--lyf-primary); font-size: 18px; }
+.anniv-card.is-today .anniv-count { color: var(--lyf-primary); font-weight: 700; }
+.anniv-date { font-size: 12px; color: var(--lyf-text-muted); margin-top: auto; }
+
+/* 纪念日列表页/后台用的行式布局 */
+.anniv-list { display: flex; flex-direction: column; gap: 12px; }
+.anniv-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px; border-radius: var(--radius);
+  background: var(--lyf-surface); border: 1px solid var(--lyf-border);
+}
+.anniv-row.is-today { border-color: var(--lyf-primary); background: var(--lyf-primary-soft); }
+.anniv-row .anniv-icon { font-size: 22px; }
+.anniv-row-main { flex: 1; min-width: 0; }
+.anniv-row-main strong { display: block; font-size: 15px; }
+.anniv-row-main small { color: var(--lyf-text-muted); font-size: 12px; }
+.anniv-row-side { text-align: right; flex-shrink: 0; }
+.anniv-row-side b { display: block; font-size: 20px; color: var(--lyf-primary); line-height: 1.1; }
+.anniv-row-side small { color: var(--lyf-text-muted); font-size: 12px; }
+.anniv-row-side .pin { font-size: 12px; color: var(--lyf-accent); }
+
+/* ==========================================================================
+   新站冷启动引导 —— 空白页也要有人说句话
+   ========================================================================== */
+
+.fresh-start {
+  max-width: 720px; margin: 0 auto; padding: 32px;
+  border-radius: var(--radius);
+  background: var(--lyf-surface); border: 1px dashed var(--lyf-border);
+  text-align: left;
+}
+.fresh-start-head { text-align: center; margin-bottom: 24px; }
+.fresh-start-head .seed { font-size: 40px; display: block; margin-bottom: 8px; }
+.fresh-start-head h3 { font-size: 20px; margin: 0 0 6px; }
+.fresh-start-head p { color: var(--lyf-text-muted); font-size: 14px; margin: 0; }
+.fresh-steps { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.fresh-steps li { display: flex; gap: 14px; align-items: flex-start; }
+.fresh-steps li > span {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 13px; font-weight: 700;
+  background: var(--lyf-primary-soft); color: var(--lyf-primary);
+}
+.fresh-steps strong { display: block; font-size: 14px; margin-bottom: 2px; }
+.fresh-steps p { margin: 0; font-size: 13px; color: var(--lyf-text-muted); }
+.fresh-steps code {
+  background: var(--lyf-surface-alt); padding: 1px 6px; border-radius: 5px;
+  font-size: 12px; color: var(--lyf-primary);
+}
+.fresh-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .anniv-banner { margin-top: -26px; padding: 12px 14px; }
+  .anniv-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .fresh-start { padding: 22px 18px; }
 }
