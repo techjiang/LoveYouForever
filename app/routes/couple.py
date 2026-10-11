@@ -3,7 +3,7 @@ from flask import Blueprint, abort, flash, jsonify, redirect, render_template, r
 from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.models import Couple, CoupleEvent, SiteSetting, User, Vow
+from app.models import Couple, CoupleEvent, SiteSetting, User, Vow, WISH_MOODS
 from app.models.mixins import utcnow
 from app.services import couple_service, site_service
 from app.services.couple_service import CoupleError
@@ -28,6 +28,8 @@ def home():
 
     anniversaries = anniversary_service.list_all(couple)
 
+    from app.services import wish_service
+
     return render_template(
         "couple/home.html",
         couple=couple,
@@ -37,6 +39,8 @@ def home():
         tampered=tampered,
         anniversaries=anniversaries,
         anniversary_humanize=anniversary_service.humanize,
+        wishes=wish_service.recent(10),
+        wish_moods=WISH_MOODS,
     )
 
 
@@ -73,6 +77,33 @@ def anniversary_add():
         )
         flash(f"「{title}」记下了", "success")
     return redirect(url_for("couple.home") + "#anniversaries")
+
+
+@couple_bp.route("/wish", methods=["POST"])
+@login_required
+def wish_post():
+    """在首页顶上贴一句话。"""
+    from app.services import wish_service
+
+    content = (request.form.get("content") or "").strip()
+    if not content:
+        flash("总得写点什么吧", "error")
+    else:
+        wish_service.post(current_user, content, request.form.get("mood") or "sweet")
+        flash("贴好了，门口那句话换了。", "success")
+    return redirect(request.form.get("next") or url_for("blog.index"))
+
+
+@couple_bp.route("/wish/<int:wish_id>/delete", methods=["POST"])
+@login_required
+def wish_delete(wish_id: int):
+    from app.services import wish_service
+
+    if not current_user.is_admin:
+        abort(403)
+    wish_service.delete(wish_id)
+    flash("删掉了", "info")
+    return redirect(request.form.get("next") or url_for("blog.index"))
 
 
 @couple_bp.route("/bind")
@@ -268,6 +299,31 @@ def api_handshake():
             "issuer": issuer.username if issuer else "",
             "issuer_nickname": issuer.display_name if issuer else "",
             "expires_at": token.expires_at.isoformat() if token.expires_at else None,
+        }
+    )
+
+
+@couple_bp.route("/api/wish")
+def api_wish():
+    """首页顶上那句话，供对方站点展示。
+
+    只给公开的：隐藏的寄语不该从接口漏出去。
+    """
+    from app.services import wish_service
+
+    wish = wish_service.current()
+    if wish is None or not wish.is_public:
+        return jsonify({"ok": True, "has_wish": False})
+    return jsonify(
+        {
+            "ok": True,
+            "has_wish": True,
+            "content": wish.content,
+            "mood": wish.mood,
+            "mood_label": wish.mood_label,
+            "author": wish.author.display_name if wish.author else "",
+            "created_at": wish.created_at.isoformat(),
+            "is_today": wish_service.is_today(wish),
         }
     )
 

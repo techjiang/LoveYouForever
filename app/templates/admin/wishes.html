@@ -1,0 +1,82 @@
+{% extends "admin/base.html" %}
+{% block title %}门口寄语{% endblock %}
+{% block content %}
+<div class="admin-head">
+  <h1>💬 门口寄语</h1>
+  <p class="muted">首页最上面那一行字。每天只露最新的一条，旧的不显示但会留在这里。</p>
+</div>
+
+<div class="admin-grid cols-2" style="align-items:start">
+  <div class="panel">
+    <h3>＋ 代贴一句</h3>
+    <form method="post" action="{{ url_for('admin.wish_new') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row"><label>内容</label>
+        <input class="input" name="content" maxlength="280" required placeholder="今天想说的话">
+      </div>
+      <div class="form-grid">
+        <div class="form-row"><label>署名</label>
+          <select class="input" name="author_id">
+            {% for u in users %}
+              <option value="{{ u.id }}"{% if u.id == current_user.id %} selected{% endif %}>{{ u.display_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-row"><label>心情</label>
+          <select class="input" name="mood">
+            {% for key, (icon, label) in moods.items() %}
+              <option value="{{ key }}">{{ icon }} {{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit">贴上去</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h3>现在的门口</h3>
+    {% if current_id %}
+      <p style="font-size:14px;color:var(--lyf-text-muted)">首页正在显示的是列表里标了「正在显示」的那一条。</p>
+    {% else %}
+      <p style="font-size:14px;color:var(--lyf-text-muted)">门口还空着。上面写一句，首页就会出现。</p>
+    {% endif %}
+    <p style="font-size:13px;color:var(--lyf-text-muted);margin-top:12px">
+      隐藏的寄语只有登录用户能看到；删除就是真的删掉，不留底。
+    </p>
+  </div>
+</div>
+
+<div class="table-wrap" style="margin-top:20px">
+  <table class="data">
+    <thead><tr><th>内容</th><th>心情</th><th>署名</th><th>时间</th><th style="width:220px">操作</th></tr></thead>
+    <tbody>
+    {% for w in wishes %}
+      <tr>
+        <td class="row-title">
+          {{ w.content }}
+          {% if w.id == current_id %}<span class="badge ok">正在显示</span>{% endif %}
+          {% if not w.is_public %}<span class="badge warn">已隐藏</span>{% endif %}
+        </td>
+        <td>{{ w.mood_icon }} {{ w.mood_label }}</td>
+        <td>{{ w.author.display_name if w.author else '—' }}</td>
+        <td style="font-size:13px;color:var(--lyf-text-muted)">{{ w.created_at | fmt_date('%Y-%m-%d %H:%M') }}</td>
+        <td class="actions">
+          <form method="post" action="{{ url_for('admin.wish_toggle', wish_id=w.id) }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ghost btn-sm" type="submit">{{ '隐藏' if w.is_public else '公开' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.wish_delete', wish_id=w.id) }}" style="display:inline"
+                onsubmit="return confirm('删除这句话？')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm" type="submit">删除</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--lyf-text-muted)">还没有寄语</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

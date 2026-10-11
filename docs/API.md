@@ -149,3 +149,31 @@
 **Powered by 科技酱 & LoveYouForever**
 
 </div>
+
+
+## 门口寄语
+
+### `GET /couple/api/wish`
+
+首页顶上那一句，给「双方站点互连」用 —— 对方的站可以把它挂在自己门口。
+
+```json
+{
+  "ok": true,
+  "has_wish": true,
+  "content": "今天也想你",
+  "mood": "miss",
+  "mood_label": "想你",
+  "author": "阿江",
+  "created_at": "2026-10-11T09:30:00",
+  "is_today": true
+}
+```
+
+没有任何寄语时：
+
+```json
+{"ok": true, "has_wish": false}
+```
+
+只返回公开的寄语。隐藏的那些不会出现在这里 —— 既然藏了，就不该从接口漏出去。

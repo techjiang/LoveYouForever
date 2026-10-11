@@ -419,3 +419,165 @@ def test_homepage_does_not_pretend_a_couple(app, client):
     html = client.get("/").get_data(as_text=True)
     assert "我们的小站" not in html
     assert "天相伴" not in html
+
+
+# ------------------------------------------------------------------- 门口寄语
+def test_wish_only_shows_one(app, client):
+    """门口那句只露一条，不然首页就不是首页了。"""
+    from app.extensions import db
+    from app.models import User
+    from app.services import wish_service
+
+    with app.app_context():
+        u = User.query.first()
+        wish_service.post(u, "第一条")
+        wish_service.post(u, "第二条")
+
+    html = client.get("/").get_data(as_text=True)
+    assert "第二条" in html
+    assert "第一条" not in html
+
+
+def test_wish_hidden_from_guests_when_private(app, client):
+    """关掉公开之后，未登录的人不该看到。"""
+    from app.extensions import db
+    from app.models import DailyWish, User
+    from app.services import wish_service
+
+    with app.app_context():
+        u = User.query.first()
+        w = wish_service.post(u, "悄悄话")
+        w.is_public = False
+        db.session.commit()
+
+    assert "悄悄话" not in client.get("/").get_data(as_text=True)
+
+
+def test_wish_strips_empty(app):
+    """空话贴不上去。"""
+    from app.models import User
+    from app.services import wish_service
+
+    with app.app_context():
+        u = User.query.first()
+        assert wish_service.post(u, "   ") is None
+        assert wish_service.current() is None
+
+
+def test_wish_requires_login(client):
+    """游客不能贴。"""
+    r = client.post("/couple/wish", data={"content": "随便写"}, follow_redirects=False)
+    assert r.status_code in (302, 401)
+
+
+# ------------------------------------------------------------------- 情侣页
+def test_couple_wall_shows_recent_wishes(app, client):
+    """情侣页的墙上要有最近几条，谁贴的、什么时候贴的都要看得见。"""
+    from app.extensions import db
+    from app.models import User
+    from app.services import couple_service, wish_service
+
+    with app.app_context():
+        a = User(username="wa", nickname="甲")
+        a.set_password("pass1234")
+        b = User(username="wb", nickname="乙")
+        b.set_password("pass1234")
+        db.session.add_all([a, b])
+        db.session.commit()
+        tok = couple_service.create_bind_token(a)
+        couple_service.accept_bind_token(b, tok.token)
+        wish_service.post(a, "墙上的一句")
+
+    client.post("/auth/login", data={"username": "wa", "password": "pass1234"})
+    html = client.get("/couple/").get_data(as_text=True)
+    assert "门口的墙" in html
+    assert "墙上的一句" in html
+
+
+def test_couple_wall_requires_couple(client):
+    """还没绑定的人进情侣页会被引导去绑定，而不是报错。"""
+    r = client.get("/couple/")
+    assert r.status_code == 302
+
+
+# ------------------------------------------------------------------- 站点体检
+def test_health_flags_default_password(app):
+    """默认密码必须被标成 error —— 这是最容易被忽略、后果最大的一条。"""
+    from app.services import health_service
+
+    with app.app_context():
+        report = health_service.run_all()
+        titles = {r["title"]: r for r in report["rows"]}
+        assert any("默认密码" in t for t in titles), titles.keys()
+        item = next(r for k, r in titles.items() if "默认密码" in k)
+        assert item["level"] == "error"
+        assert item["fix"], "报错要给出怎么修"
+        assert report["errors"] >= 1
+
+
+def test_health_warns_missing_backup_and_site_url(app):
+    from app.services import health_service
+
+    with app.app_context():
+        rows = {r["title"]: r["level"] for r in health_service.run_all()["rows"]}
+        assert rows.get("站点地址没填") == "warn"
+        assert rows.get("一次备份都没有") == "warn"
+
+
+def test_health_ok_after_setup(app):
+    """把该配的都配好之后，不该再有 error。"""
+    from app.extensions import db
+    from app.models import SiteSetting, User
+    from app.services import backup_service, health_service
+
+    with app.app_context():
+        admin = User.query.filter_by(username="admin").first()
+        admin.set_password("a-much-better-password")
+        SiteSetting.set("site_url", "https://love.example.com")
+        db.session.commit()
+        backup_service.create_backup(kind="test", note="health")
+
+        report = health_service.run_all()
+        assert report["errors"] == 0, [r for r in report["rows"] if r["level"] == "error"]
+
+
+def test_health_page_requires_admin(client):
+    """体检结果里有配置细节，不能给游客看。"""
+    r = client.get("/admin/health", follow_redirects=False)
+    assert r.status_code in (302, 401, 403)
+
+
+def test_admin_pages_render(app, client):
+    """后台几个新页面至少要能打开，别 500。"""
+    client.post("/auth/login", data={"username": "admin", "password": "loveyou"})
+    for path in ("/admin/", "/admin/health", "/admin/wishes"):
+        assert client.get(path).status_code == 200, path
+
+
+def test_wish_api_hides_private(app, client):
+    """隐藏的寄语不该从接口漏出去。"""
+    from app.extensions import db
+    from app.models import User
+    from app.services import wish_service
+
+    with app.app_context():
+        u = User.query.first()
+        w = wish_service.post(u, "这是藏起来的")
+        w.is_public = False
+        db.session.commit()
+
+    data = client.get("/couple/api/wish").get_json()
+    assert data["has_wish"] is False
+
+
+def test_wish_api_shape(app, client):
+    from app.models import User
+    from app.services import wish_service
+
+    with app.app_context():
+        wish_service.post(User.query.first(), "今天也想你", "miss")
+
+    data = client.get("/couple/api/wish").get_json()
+    assert data["has_wish"] is True
+    assert data["content"] == "今天也想你"
+    assert data["mood_label"] == "想你"

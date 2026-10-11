@@ -2,6 +2,28 @@
 {% block body_class %}page-index{% endblock %}
 {% block content %}
 
+{# 门口那句话：今天想对你说的话，每天只露一条 #}
+{% if wish %}
+<section class="wish-strip">
+  <div class="container wish-inner">
+    <span class="wish-mood" title="{{ wish.mood_label }}">{{ wish.mood_icon }}</span>
+    <p class="wish-text">{{ wish.content }}</p>
+    <span class="wish-by">
+      {{ wish.author.display_name if wish.author else '' }}
+      {%- if wish_is_today %} · 今天{% else %} · {{ wish.created_at | humanize }}{% endif %}
+    </span>
+    {% if current_user.is_authenticated and (current_user.id == wish.author_id or current_user.is_admin) %}
+      <form method="post" action="{{ url_for('couple.wish_delete', wish_id=wish.id) }}" class="wish-del"
+            onsubmit="return confirm('删掉这句话？')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ url_for('blog.index') }}">
+        <button class="wish-del-btn" type="submit" title="删掉">✕</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
 {% set show_days = site.days_together and site.days_together > 0 %}
 <section class="hero">
   {% if site.hero_image %}<img class="hero-image" src="{{ site.hero_image }}" alt="">{% endif %}
@@ -19,6 +41,27 @@
     </div>
   </div>
 </section>
+
+{% if current_user.is_authenticated %}
+<section class="wish-compose">
+  <div class="container">
+    <form method="post" action="{{ url_for('couple.wish_post') }}" class="wish-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ url_for('blog.index') }}">
+      <input class="input wish-input" name="content" maxlength="280" required
+             placeholder="{{ '换一句今天想说的话' if wish else '今天想对 TA 说点什么？' }}">
+      <select class="input wish-mood" name="mood">
+        <option value="sweet">💗 甜</option>
+        <option value="miss">🌙 想你</option>
+        <option value="cheer">🌟 加油</option>
+        <option value="sorry">🍃 对不起</option>
+        <option value="daily">☕ 日常</option>
+      </select>
+      <button class="btn btn-primary btn-sm" type="submit">贴到门口</button>
+    </form>
+  </div>
+</section>
+{% endif %}
 
 <div class="container">
   <div class="stat-strip">

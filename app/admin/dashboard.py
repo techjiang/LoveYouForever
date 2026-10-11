@@ -12,7 +12,7 @@ from app.models import (
     SiteSetting, Tag, User, Vow,
 )
 from app.models.mixins import utcnow
-from app.services import backup_service, couple_service
+from app.services import backup_service, couple_service, health_service
 from app.utils.helpers import admin_required
 
 
@@ -59,9 +59,12 @@ def index():
     except Exception:
         pass
 
+    health = health_service.badge()
+
     return render_template(
         "admin/dashboard.html",
         stats=stats,
+        health=health,
         couple=couple,
         recent_posts=recent_posts,
         recent_moments=recent_moments,

@@ -36,6 +36,7 @@
       <a href="{{ url_for('admin.vows') }}" class="{{ 'active' if request.endpoint == 'admin.vows' }}">🤝 约定</a>
       <a href="{{ url_for('admin.events') }}" class="{{ 'active' if request.endpoint == 'admin.events' }}">📅 时间线</a>
       <a href="{{ url_for('admin.anniversaries') }}" class="{{ 'active' if request.endpoint == 'admin.anniversaries' }}">💞 纪念日</a>
+      <a href="{{ url_for('admin.wishes') }}" class="{{ 'active' if request.endpoint == 'admin.wishes' }}">💬 门口寄语</a>
       <a href="{{ url_for('admin.merged') }}" class="{{ 'active' if request.endpoint == 'admin.merged' }}">🔀 内容合并</a>
 
       <span class="group-title">系统</span>
@@ -43,6 +44,7 @@
       <a href="{{ url_for('admin.plugins') }}" class="{{ 'active' if request.endpoint == 'admin.plugins' }}">🧩 插件</a>
       <a href="{{ url_for('admin.backup') }}" class="{{ 'active' if request.endpoint == 'admin.backup' }}">🛡 备份</a>
       <a href="{{ url_for('admin.users') }}" class="{{ 'active' if request.endpoint == 'admin.users' }}">👥 用户</a>
+      <a href="{{ url_for('admin.health') }}" class="{{ 'active' if request.endpoint == 'admin.health' }}">🩺 站点体检</a>
       <a href="{{ url_for('admin.site') }}" class="{{ 'active' if request.endpoint == 'admin.site' }}">⚙️ 站点设置</a>
     </nav>
 

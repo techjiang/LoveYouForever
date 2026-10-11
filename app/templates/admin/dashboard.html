@@ -15,6 +15,20 @@
   </div>
 </div>
 
+{# 体检摘要：有问题就直接顶在仪表盘最上面，不用等人自己去翻 #}
+{% if health and health.level != 'ok' %}
+  <a class="panel" href="{{ url_for('admin.health') }}"
+     style="display:block;margin-bottom:22px;border-color:{{ '#e5544b' if health.level == 'error' else '#f0a63c' }};
+            background:{{ '#fdeaea' if health.level == 'error' else '#fff7ea' }};text-decoration:none">
+    <strong style="color:{{ '#c0392b' if health.level == 'error' else '#a86a12' }}">
+      {{ '⛔' if health.level == 'error' else '⚠️' }} 站点体检：{{ health.headline }}
+    </strong>
+    <p style="margin:6px 0 0;font-size:13.5px;color:var(--lyf-text-muted)">
+      {{ health.errors }} 项错误 · {{ health.warnings }} 项提醒 —— 点这里看是哪几条。
+    </p>
+  </a>
+{% endif %}
+
 {% if couple and tampered is defined and tampered %}
   <div class="panel" style="border-color:#e5544b;background:#fdeaea">
     <strong style="color:#c0392b">⚠️ 检测到情侣关系数据被外部修改</strong>

@@ -132,6 +132,14 @@ def seed_demo(with_partner: bool = False) -> None:
             )
         )
 
+    if with_partner:
+        # 门口那句话：演示站最显眼的位置不该是空的
+        from app.models import DailyWish
+
+        db.session.add(
+            DailyWish(content="今天也想你，和昨天一样。", mood="miss", author_id=partner.id)
+        )
+
     album = Album(title="我们的相册", slug="our-album", description="随手拍下来的日常", location="家里")
     db.session.add(album)
     db.session.flush()

@@ -176,6 +176,56 @@ h1, h2, h3, h4 { line-height: 1.35; margin: 0 0 .6em; font-weight: 700; letter-s
 .chip-cat { background: var(--lyf-primary-soft); color: var(--lyf-primary); font-weight: 600; }
 .chip-tag:hover { background: var(--lyf-primary-soft); color: var(--lyf-primary); opacity: 1; }
 
+/* ------------------------------------------------------------ 门口的寄语 */
+/* 首页最上面那一条：两个人今天想说的话。刻意做薄，不抢 hero 的戏。 */
+.wish-strip {
+  background: var(--lyf-surface-alt);
+  border-bottom: 1px solid var(--lyf-border);
+}
+.wish-inner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 0; font-size: 14.5px;
+}
+.wish-mood { font-size: 17px; line-height: 1; flex-shrink: 0; }
+.wish-text {
+  margin: 0; min-width: 0; flex: 1;
+  color: var(--lyf-text); font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wish-by {
+  flex-shrink: 0; font-size: 12.5px; color: var(--lyf-text-muted);
+}
+.wish-del { flex-shrink: 0; margin: 0; }
+.wish-del-btn {
+  background: none; border: 0; color: var(--lyf-text-muted);
+  cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 6px;
+}
+.wish-del-btn:hover { background: var(--lyf-primary-soft); color: var(--lyf-primary); }
+
+/* 情侣页的寄语墙：看得出谁贴的、什么时候贴的 */
+.wish-list { margin-top:18px; border-top:1px solid var(--lyf-border); }
+.wish-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 0; border-bottom: 1px solid var(--lyf-border);
+}
+.wish-item:last-child { border-bottom: 0; }
+.wish-item-mood { font-size: 16px; line-height: 1.5; flex-shrink: 0; }
+.wish-item-main { flex: 1; min-width: 0; }
+.wish-item-main p { margin: 0 0 3px; font-size: 14.5px; line-height: 1.6; overflow-wrap: anywhere; }
+.wish-item-main small { color: var(--lyf-text-muted); font-size: 12.5px; }
+
+/* 登录后「贴一句」的入口 */
+.wish-compose { padding: 14px 0 0; }
+.wish-form { display: flex; gap: 10px; flex-wrap: wrap; }
+.wish-input { flex: 1 1 260px; min-width: 0; }
+.wish-mood { flex: 0 0 auto; width: auto; }
+@media (max-width: 640px) {
+  .wish-inner { flex-wrap: wrap; padding: 10px 0; }
+  .wish-text { white-space: normal; flex-basis: 100%; order: 3; }
+  .wish-by { margin-left: auto; }
+  .wish-form .btn { width: 100%; }
+}
+
 /* ---------------------------------------------------------------- 首页 Hero */
 .hero {
   position: relative; padding: 90px 0 70px; overflow: hidden;

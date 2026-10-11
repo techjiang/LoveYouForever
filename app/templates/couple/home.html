@@ -86,6 +86,55 @@
           </form>
         </div>
 
+        <div class="section-head" style="margin-top:36px" id="wishes">
+          <h2>门口的墙</h2>
+        </div>
+        <div class="panel">
+          <p style="font-size:13.5px;color:var(--lyf-text-muted);margin-top:0">
+            首页最上面那一行字，就来自这里。每天只露最新的一条。
+          </p>
+          <form method="post" action="{{ url_for('couple.wish_post') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ url_for('couple.home') }}">
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <input class="input" style="flex:1 1 240px" name="content" maxlength="280" required placeholder="今天想对 TA 说什么？">
+              <select class="input" style="width:auto" name="mood">
+                {% for key, (icon, label) in wish_moods.items() %}
+                  <option value="{{ key }}">{{ icon }} {{ label }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-primary btn-sm" type="submit">贴上去</button>
+            </div>
+          </form>
+          {% if wishes %}
+            <div class="wish-list">
+              {% for w in wishes %}
+                <div class="wish-item">
+                  <span class="wish-item-mood">{{ w.mood_icon }}</span>
+                  <div class="wish-item-main">
+                    <p>{{ w.content }}</p>
+                    <small>
+                      {{ w.author.display_name if w.author else '—' }}
+                      · {{ w.created_at | fmt_date('%m-%d %H:%M') }}
+                      {% if not w.is_public %}· 已隐藏{% endif %}
+                    </small>
+                  </div>
+                  {% if current_user.id == w.author_id or current_user.is_admin %}
+                    <form method="post" action="{{ url_for('couple.wish_delete', wish_id=w.id) }}"
+                          onsubmit="return confirm('删掉这句话？')">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="next" value="{{ url_for('couple.home') }}">
+                      <button class="wish-del-btn" type="submit" title="删掉">✕</button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p style="font-size:14px;color:var(--lyf-text-muted)">墙上还空着。</p>
+          {% endif %}
+        </div>
+
         <div class="section-head" style="margin-top:36px" id="anniversaries">
           <h2>值得数着的日子</h2>
         </div>

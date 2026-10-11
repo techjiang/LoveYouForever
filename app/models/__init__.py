@@ -7,6 +7,7 @@ from app.models.moment import Moment, MomentComment, MomentLike
 from app.models.anniversary import Anniversary, KINDS as ANNIVERSARY_KINDS
 from app.models.misc import FriendLink, PluginRecord, BackupRecord
 from app.models.note import Note
+from app.models.wish import DailyWish, MOODS as WISH_MOODS
 
 __all__ = [
     "User", "SiteSetting",
@@ -15,6 +16,6 @@ __all__ = [
     "Album", "Photo",
     "Moment", "MomentComment", "MomentLike",
     "FriendLink", "PluginRecord", "BackupRecord",
-    "Note",
+    "Note", "DailyWish", "WISH_MOODS",
     "Anniversary", "ANNIVERSARY_KINDS",
 ]

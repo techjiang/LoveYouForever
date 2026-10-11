@@ -68,6 +68,9 @@ def vow_new():
 @admin_required
 def vow_delete(vow_id: int):
     vow = db.session.get(Vow, vow_id)
+    if vow is None:
+        flash("这条约定已经不存在了", "error")
+        return redirect(url_for("admin.vows"))
     db.session.delete(vow)
     db.session.commit()
     flash("约定已删除", "info")
@@ -123,8 +126,12 @@ def event_new():
 @admin_required
 def event_delete(event_id: int):
     ev = db.session.get(CoupleEvent, event_id)
+    if ev is None:
+        flash("这条记录已经不存在了", "error")
+        return redirect(url_for("admin.events"))
     db.session.delete(ev)
     db.session.commit()
+    flash("已删除", "info")
     return redirect(url_for("admin.events"))
 
 

@@ -41,6 +41,10 @@ def index():
         "days": couple.days_together if couple else 0,
     }
 
+    from app.services import wish_service
+
+    wish = wish_service.current()
+
     return render_template(
         "index.html",
         posts=page.items,
@@ -49,6 +53,8 @@ def index():
         moments=recent_moments,
         stats=stats,
         couple=couple,
+        wish=wish,
+        wish_is_today=wish_service.is_today(wish),
     )
 
 

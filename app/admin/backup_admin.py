@@ -57,8 +57,9 @@ def backup_verify(backup_id: int):
     from app.models import BackupRecord
 
     rec = db.session.get(BackupRecord, backup_id)
-    result = backup_service.verify_backup(rec.filename)
-    return jsonify(result)
+    if rec is None:
+        return jsonify({"ok": False, "reason": "备份记录不存在"}), 404
+    return jsonify(backup_service.verify_backup(rec.filename))
 
 
 @admin_bp.route("/backup/<int:backup_id>/restore", methods=["POST"])
@@ -69,8 +70,11 @@ def backup_restore(backup_id: int):
     from app.models import BackupRecord
 
     rec = db.session.get(BackupRecord, backup_id)
+    if rec is None:
+        flash("备份记录不存在", "error")
+        return redirect(url_for("admin.backup"))
     try:
-        result = backup_service.restore_backup(rec.filename, restore_uploads=bool(request.form.get("restore_uploads", True)))
+        backup_service.restore_backup(rec.filename, restore_uploads=bool(request.form.get("restore_uploads", True)))
         flash("恢复完成。为避免会话错乱，请重新登录。", "success")
         return redirect(url_for("auth.login"))
     except Exception as exc:
@@ -86,6 +90,9 @@ def backup_delete(backup_id: int):
     from app.models import BackupRecord
 
     rec = db.session.get(BackupRecord, backup_id)
+    if rec is None:
+        flash("备份记录不存在", "error")
+        return redirect(url_for("admin.backup"))
     path = backup_service.backup_dir() / rec.filename
     if path.exists():
         path.unlink()

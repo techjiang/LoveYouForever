@@ -164,4 +164,25 @@ def register_cli(app: Flask) -> None:
         nxt = stats["next"]
         if nxt:
             click.echo(f"下一个: {nxt.title} —— {anniversary_service.humanize(nxt)}")
-        click.secho("检查完毕。", fg="green")
+
+        # 体检项和后台「站点体检」共用一套判断，不各写一遍
+        from app.services import health_service
+
+        report = health_service.run_all()
+        click.echo("")
+        click.echo(f"--- 体检：{report['headline']} ---")
+        marks = {"ok": "✓", "warn": "!", "error": "✗"}
+        colors = {"ok": "green", "warn": "yellow", "error": "red"}
+        for row in report["rows"]:
+            click.secho(f"  {marks[row['level']]} {row['title']}", fg=colors[row["level"]])
+            if row["detail"]:
+                click.echo(f"      {row['detail']}")
+            if row["fix"] and row["level"] != "ok":
+                click.echo(f"      → {row['fix']}")
+
+        if report["errors"]:
+            click.secho("有需要立刻处理的问题。", fg="red")
+        elif report["warnings"]:
+            click.secho("体检通过，有几项建议看一下。", fg="yellow")
+        else:
+            click.secho("检查完毕，一切正常。", fg="green")
