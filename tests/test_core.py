@@ -383,8 +383,8 @@ def test_seed_does_not_invent_partner(app):
         assert all(p.author_id == admin.id for p in posts)
 
 
-def test_homepage_shows_countdown(app, client):
-    """首页应该出现倒计时条，而不是只在后台可见。"""
+def test_homepage_never_leaks_anniversaries(app, client):
+    """首页是公开的，纪念日只属于两个人，不该出现在门外。"""
     from datetime import date, timedelta
 
     from app.extensions import db
@@ -399,9 +399,23 @@ def test_homepage_shows_countdown(app, client):
         c = Couple(name="我们")
         db.session.add(c)
         db.session.commit()
-        anniversary_service.create(c, "在一起", date.today() + timedelta(days=9))
+        anniversary_service.create(c, "她的生日", date.today() + timedelta(days=9))
 
     html = client.get("/").get_data(as_text=True)
-    assert "值得数着的日子" in html
-    assert "在一起" in html
-    assert "还有" in html and "9" in html
+    assert "她的生日" not in html
+    assert "值得数着的日子" not in html
+
+
+def test_homepage_has_no_setup_wizard(app, client):
+    """首页不是安装向导：空站就说空站，别教人改密码、别催人绑定。"""
+    html = client.get("/").get_data(as_text=True)
+    assert "改掉默认密码" not in html
+    assert "和对方绑定" not in html
+    assert "还没有文章" in html
+
+
+def test_homepage_does_not_pretend_a_couple(app, client):
+    """没有另一半的时候，首页不该摆出「我们的小站」这种不存在的戏。"""
+    html = client.get("/").get_data(as_text=True)
+    assert "我们的小站" not in html
+    assert "天相伴" not in html

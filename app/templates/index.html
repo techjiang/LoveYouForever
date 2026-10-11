@@ -20,27 +20,18 @@
   </div>
 </section>
 
-{% if next_anniversary %}
-<div class="container">
-  <a class="anniv-banner" href="{{ url_for('couple.home') }}#anniversaries">
-    <span class="anniv-banner-icon">{{ next_anniversary.icon or '💞' }}</span>
-    <span class="anniv-banner-text">
-      <strong>{{ next_anniversary.title }}</strong>
-      <em>{{ anniversary_humanize(next_anniversary) }}</em>
-    </span>
-    {% if next_anniversary.repeat_yearly and next_anniversary.years_count %}
-      <span class="anniv-banner-badge">第 {{ next_anniversary.years_count + 1 }} 年</span>
-    {% endif %}
-  </a>
-</div>
-{% endif %}
-
 <div class="container">
   <div class="stat-strip">
     <div class="stat-card"><strong>{{ stats.posts }}</strong><span>篇文章</span></div>
     <div class="stat-card"><strong>{{ stats.categories }}</strong><span>个分类</span></div>
-    <div class="stat-card"><strong>{{ site.days_together or 0 }}</strong><span>天相伴</span></div>
-    <div class="stat-card"><strong>{{ site.couple_name }}</strong><span>我们的小站</span></div>
+    {% if couple %}
+      <div class="stat-card"><strong>{{ site.days_together }}</strong><span>天相伴</span></div>
+      <div class="stat-card"><strong>{{ site.couple_name }}</strong><span>我们的小站</span></div>
+    {% else %}
+      {# 还没人来的时候，不该在门外演一对并不存在的人 #}
+      <div class="stat-card"><strong>{{ stats.moments }}</strong><span>条瞬间</span></div>
+      <div class="stat-card"><strong>欢迎</strong><span>来到这个小站</span></div>
+    {% endif %}
   </div>
 </div>
 
@@ -70,30 +61,10 @@
       </div>
       {% set pagination = pagination %}{% include "partials/_pagination.html" %}
     {% else %}
-      {% if is_fresh_install %}
-      <div class="fresh-start">
-        <div class="fresh-start-head">
-          <span class="seed">🌱</span>
-          <h3>这里还是一张白纸</h3>
-          <p>白纸挺好，第一笔写下来就再也回不去了。</p>
-        </div>
-        <ol class="fresh-steps">
-          <li><span>1</span><div><strong>改掉默认密码</strong><p>后台 → 用户，第一次登录请务必先换掉 <code>loveyou</code>。</p></div></li>
-          <li><span>2</span><div><strong>写下第一篇文章</strong><p>支持 Markdown，也能用 <code>::love[情话]</code> 这类彩蛋语法。</p></div></li>
-          <li><span>3</span><div><strong>和对方绑定</strong><p>生成握手码给对方，绑定之后就无法解除了。</p></div></li>
-          <li><span>4</span><div><strong>记下重要的日子</strong><p>纪念日、生日、下次见面的那天，首页会替你们数着。</p></div></li>
-        </ol>
-        <div class="fresh-actions">
-          <a class="btn btn-primary" href="{{ url_for('auth.login') }}">进入后台写第一篇</a>
-          <a class="btn btn-ghost" href="{{ url_for('misc.page', key='about') }}">先看看关于页</a>
-        </div>
-      </div>
-      {% else %}
       <div class="empty-state">
         <span class="icon">📝</span>
         <p>还没有文章。登录后可以在后台写下第一篇。</p>
       </div>
-      {% endif %}
     {% endif %}
   </div>
 </section>
@@ -108,32 +79,6 @@
     <div class="moment-stream">
       {% set liked_ids = liked_ids if liked_ids is defined else [] %}
       {% for moment in moments %}{% include "partials/_moment_card.html" %}{% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-{% if anniversaries %}
-<section class="section" style="padding-top:8px">
-  <div class="container">
-    <div class="section-head">
-      <h2>值得数着的日子</h2>
-      <a class="more" href="{{ url_for('couple.home') }}">全部纪念日 →</a>
-    </div>
-    <div class="anniv-grid">
-      {% for a in anniversaries %}
-        {% set left = a.days_left() %}
-        <div class="anniv-card{% if left == 0 %} is-today{% endif %}">
-          <span class="anniv-icon">{{ a.icon or '💞' }}</span>
-          <strong>{{ a.title }}</strong>
-          <span class="anniv-count">
-            {% if left == 0 %}就是今天
-            {% elif left == 1 %}明天
-            {% else %}还有 <b>{{ left }}</b> 天{% endif %}
-          </span>
-          <span class="anniv-date">{{ a.next_date() | fmt_date('%m月%d日') }}</span>
-        </div>
-      {% endfor %}
     </div>
   </div>
 </section>

@@ -77,13 +77,12 @@ def seed_demo(with_partner: bool = False) -> None:
         db.session.flush()
         admin.couple_id = couple.id
         partner.couple_id = couple.id
-        admin.role_label = admin.role_label or "老公"
         db.session.commit()
-        # 顺手把「在一起」记成纪念日，演示站首页才有东西可数
+        # 顺手把「在一起」记成纪念日
         from app.services import anniversary_service
 
         anniversary_service.seed_defaults(couple)
-        # 演示站再多几个，让「值得数着的日子」这一块看起来是活的
+        # 再补几个，让情侣页的「值得数着的日子」是活的
         for title, days, icon, kind, repeat in [
             ("她的生日", 45, "🎂", "birthday", True),
             ("第一次一起看海", -120, "🌊", "anniversary", False),

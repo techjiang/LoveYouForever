@@ -5,7 +5,7 @@ from flask import Blueprint, abort, jsonify, render_template, request
 from sqlalchemy import func, or_
 
 from app.extensions import db
-from app.models import Category, Couple, Post, SiteSetting, Tag
+from app.models import Category, Couple, Moment, Post, SiteSetting, Tag
 from app.services import site_service
 from app.utils.helpers import paginate
 
@@ -28,9 +28,8 @@ def index():
     page = paginate(_published().order_by(Post.is_pinned.desc(), Post.published_at.desc()), _per_page())
     pinned = _published().filter_by(is_pinned=True).order_by(Post.published_at.desc()).limit(3).all()
     recent_moments = (
-        __import__("app.models", fromlist=["Moment"]).Moment.query
-        .filter_by(is_public=True)
-        .order_by(__import__("app.models", fromlist=["Moment"]).Moment.created_at.desc())
+        Moment.query.filter_by(is_public=True)
+        .order_by(Moment.created_at.desc())
         .limit(4)
         .all()
     )
@@ -38,13 +37,9 @@ def index():
     stats = {
         "posts": _published().count(),
         "categories": Category.query.count(),
+        "moments": Moment.query.filter_by(is_public=True).count(),
         "days": couple.days_together if couple else 0,
     }
-
-    from app.services import anniversary_service
-
-    anniversaries = anniversary_service.upcoming(couple, limit=4)
-    next_anniversary = anniversary_service.next_one(couple)
 
     return render_template(
         "index.html",
@@ -54,11 +49,6 @@ def index():
         moments=recent_moments,
         stats=stats,
         couple=couple,
-        anniversaries=anniversaries,
-        next_anniversary=next_anniversary,
-        anniversary_humanize=anniversary_service.humanize,
-        # 一篇内容都没有的新站，首页不该只剩一块空白
-        is_fresh_install=not page.items and not recent_moments and not pinned,
     )
 
 
